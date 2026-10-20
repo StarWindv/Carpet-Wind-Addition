@@ -264,6 +264,11 @@ public final class PasterCommand {
 	private static int returnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
+		if (PasterManager.isPasteRunning()) {
+			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			return 0;
+		}
+
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;
@@ -277,6 +282,11 @@ public final class PasterCommand {
 
 	private static int returnRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
+		if (PasterManager.isPasteRunning()) {
+			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			return 0;
+		}
+
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;

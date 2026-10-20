@@ -33,6 +33,10 @@ public final class PasterManager {
 		return protectedPlacementIds;
 	}
 
+	public static boolean isPasteRunning() {
+		return activePaste != null;
+	}
+
 	private static void refreshProtectedPlacements(MinecraftServer server) {
 		PasterData data = PasterData.get(server);
 		protectedPlacementIds = data == null ? Set.of() : Set.copyOf(data.placementIds());
@@ -462,6 +466,8 @@ public final class PasterManager {
 		ActivePaste session = new ActivePaste(
 				server,
 				player.getUUID(),
+				snapshot.id(),
+				snapshot.requiredMaterials(),
 				level,
 				temporaryRegions,
 				server.getTickCount()
@@ -530,6 +536,10 @@ public final class PasterManager {
 		}
 		activePaste = null;
 
+		if (success) {
+			consumePastedMaterials(server, session.placementId, session.consumedMaterials);
+		}
+
 		ServerPlayer player = server.getPlayerList().getPlayer(session.playerId);
 		if (player != null) {
 			player.sendSystemMessage(Component.translatable(
@@ -538,6 +548,24 @@ public final class PasterManager {
 		}
 
 		releaseProtectionIfEmpty(server);
+	}
+
+	private static void consumePastedMaterials(
+			MinecraftServer server,
+			UUID placementId,
+			List<PasterMaterial> materials
+	) {
+		PasterData data = PasterData.get(server);
+		if (data == null) {
+			return;
+		}
+
+		List<ItemStack> stored = data.get(placementId);
+		for (PasterMaterial material : materials) {
+			PasterMaterials.take(stored, material.sample(), material.count());
+		}
+		data.set(placementId, stored);
+		refreshProtectedPlacements(server);
 	}
 
 	public static void onServerLoaded(MinecraftServer server) {
@@ -625,6 +653,8 @@ public final class PasterManager {
 	private static final class ActivePaste {
 		private final MinecraftServer server;
 		private final UUID playerId;
+		private final UUID placementId;
+		private final List<PasterMaterial> consumedMaterials;
 		private final ServerLevel level;
 		private final List<NoUpdateManager.TemporaryRegion> temporaryRegions;
 		private final int startTick;
@@ -635,12 +665,16 @@ public final class PasterManager {
 		private ActivePaste(
 				MinecraftServer server,
 				UUID playerId,
+				UUID placementId,
+				List<PasterMaterial> consumedMaterials,
 				ServerLevel level,
 				List<NoUpdateManager.TemporaryRegion> temporaryRegions,
 				int startTick
 		) {
 			this.server = server;
 			this.playerId = playerId;
+			this.placementId = placementId;
+			this.consumedMaterials = List.copyOf(consumedMaterials);
 			this.level = level;
 			this.temporaryRegions = temporaryRegions;
 			this.startTick = startTick;
