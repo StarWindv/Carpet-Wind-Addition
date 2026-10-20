@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "cwa",
+	"version": "${version}",
+	"name": "carpet-wind-addition",
+	"description": "This is a extension for carpet.",
+	"authors": [
+		"星灿长风v"
+	],
+	"contact": {
+		"homepage": "https://github.com/starwindv",
+		"sources": "https://github.com/starwindv/carpet-wind-addition"
+	},
+	"license": "Apache-2.0",
+	"icon": "assets/cwa/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"top.starwindv.cwa.CarpetWindAddition"
+		]
+	},
+	"mixins": [
+		"cwa.mixins.json",
+		"cwa.litematica.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"carpet": ">=26.2"
+	}
+}
