@@ -65,6 +65,11 @@ public final class LitematicaBridge {
 		return initialize();
 	}
 
+	private static boolean isPrinterLoaded() {
+		return FabricLoader.getInstance().isModLoaded("litematica_printer")
+				|| FabricLoader.getInstance().isModLoaded("litematica-printer");
+	}
+
 	private static synchronized boolean initialize() {
 		if (initialized) {
 			return available;
@@ -73,7 +78,7 @@ public final class LitematicaBridge {
 
 		if (FabricLoader.getInstance().getEnvironmentType() != EnvType.CLIENT
 				|| !FabricLoader.getInstance().isModLoaded("litematica")
-				|| !FabricLoader.getInstance().isModLoaded("litematica_printer")) {
+				|| !isPrinterLoaded()) {
 			return false;
 		}
 
