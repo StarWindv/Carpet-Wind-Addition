@@ -10,6 +10,14 @@ repositories {
 	}
 }
 
+base {
+	archivesName = "cwa-${project.version}-${project.minecraft_version}"
+}
+
+tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach {
+	archiveVersion = ""
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
