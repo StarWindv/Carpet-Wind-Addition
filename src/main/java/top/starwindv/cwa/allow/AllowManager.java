@@ -3,6 +3,7 @@ package top.starwindv.cwa.allow;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import top.starwindv.cwa.rule.CwaSettings;
 
 public final class AllowManager {
 	private AllowManager() {
@@ -23,12 +24,19 @@ public final class AllowManager {
 	}
 
 	public static boolean isAllowed(CommandSourceStack source, String command) {
-		if (!isHost(source) || command.equals("allow")) {
+		if (command.equals("allow")) {
+			return false;
+		}
+		if (!isHost(source) && !CwaSettings.AllowSharePermission) {
 			return false;
 		}
 
 		AllowData data = AllowData.get(source.getServer());
 		return data != null && data.isAllowed(command);
+	}
+
+	public static boolean canUseHostCommand(CommandSourceStack source, String command) {
+		return isHost(source) || isAllowed(source, command);
 	}
 
 	public static String commandRoot(String commandLine) {

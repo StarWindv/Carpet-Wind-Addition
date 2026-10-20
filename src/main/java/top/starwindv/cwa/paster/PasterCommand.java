@@ -30,7 +30,7 @@ public final class PasterCommand {
 		dispatcher.register(Commands.literal("paster")
 				.requires(source -> LitematicaBridge.isAvailable()
 						&& LitematicaSettings.LitematicaPaster
-						&& AllowManager.isHost(source))
+						&& AllowManager.canUseHostCommand(source, "paster"))
 				.then(Commands.literal("collect")
 						.then(Commands.literal("self")
 								.executes(PasterCommand::collectSelf))

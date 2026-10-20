@@ -9,6 +9,9 @@
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin"
 	],
+	"client": [
+		"ClientSuggestionProviderMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},

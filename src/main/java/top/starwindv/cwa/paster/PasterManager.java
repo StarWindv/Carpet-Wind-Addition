@@ -20,6 +20,7 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jspecify.annotations.Nullable;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
+import top.starwindv.cwa.util.ItemTransfer;
 
 public final class PasterManager {
 	private static @Nullable ActivePaste activePaste;
@@ -293,7 +294,7 @@ public final class PasterManager {
 
 		Inventory inventory = player.getInventory();
 		for (ItemStack stack : stored) {
-			ItemStack leftover = insertIntoInventory(inventory, stack);
+			ItemStack leftover = ItemTransfer.insertIntoInventory(inventory, stack);
 			if (!leftover.isEmpty()) {
 				remaining.add(leftover);
 			}
@@ -318,9 +319,12 @@ public final class PasterManager {
 		List<ItemStack> stored = data.get(snapshot.id());
 		int before = total(stored);
 		List<ItemStack> remaining = new ArrayList<>();
+		List<Container> containers = stored.isEmpty()
+				? List.of()
+				: ItemTransfer.findContainers(level, first, second, container -> true);
 
 		for (ItemStack stack : stored) {
-			ItemStack leftover = insertIntoContainers(level, first, second, stack);
+			ItemStack leftover = ItemTransfer.insertIntoContainers(containers, stack);
 			if (!leftover.isEmpty()) {
 				remaining.add(leftover);
 			}
@@ -329,86 +333,6 @@ public final class PasterManager {
 		data.set(snapshot.id(), remaining);
 		refreshProtectedPlacements(level.getServer());
 		return new ReturnResult(before - total(remaining), total(remaining));
-	}
-
-	private static ItemStack insertIntoInventory(Inventory inventory, ItemStack stack) {
-		ItemStack remaining = stack.copy();
-		boolean changed = false;
-
-		for (int pass = 0; pass < 2; pass++) {
-			int slots = pass == 0 ? Inventory.INVENTORY_SIZE : 1;
-			for (int index = 0; index < slots && !remaining.isEmpty(); index++) {
-				int slot = pass == 0 ? index : Inventory.SLOT_OFFHAND;
-				ItemStack existing = inventory.getItem(slot);
-				if (existing.isEmpty()) {
-					int moved = Math.min(remaining.getCount(), remaining.getMaxStackSize());
-					inventory.setItem(slot, remaining.split(moved));
-					changed = true;
-				} else if (ItemStack.isSameItemSameComponents(existing, remaining)) {
-					int space = existing.getMaxStackSize() - existing.getCount();
-					if (space > 0) {
-						int moved = Math.min(space, remaining.getCount());
-						existing.grow(moved);
-						remaining.shrink(moved);
-						inventory.setItem(slot, existing);
-						changed = true;
-					}
-				}
-			}
-		}
-
-		if (changed) {
-			inventory.setChanged();
-		}
-		return remaining;
-	}
-
-	private static ItemStack insertIntoContainers(
-			ServerLevel level,
-			BlockPos first,
-			BlockPos second,
-			ItemStack stack
-	) {
-		ItemStack remaining = stack.copy();
-		Set<Container> visited = Collections.newSetFromMap(new IdentityHashMap<>());
-
-		for (BlockPos pos : BlockPos.betweenClosed(first, second)) {
-			if (remaining.isEmpty()) {
-				break;
-			}
-
-			BlockEntity blockEntity = level.getBlockEntity(pos);
-			if (!(blockEntity instanceof Container container) || !visited.add(container)) {
-				continue;
-			}
-
-			boolean changed = false;
-			for (int slot = 0; slot < container.getContainerSize() && !remaining.isEmpty(); slot++) {
-				if (!container.canPlaceItem(slot, remaining)) {
-					continue;
-				}
-
-				ItemStack existing = container.getItem(slot);
-				if (existing.isEmpty()) {
-					int moved = Math.min(remaining.getCount(), container.getMaxStackSize(remaining));
-					container.setItem(slot, remaining.split(moved));
-					changed = true;
-				} else if (ItemStack.isSameItemSameComponents(existing, remaining)) {
-					int space = container.getMaxStackSize(remaining) - existing.getCount();
-					if (space > 0) {
-						int moved = Math.min(space, remaining.getCount());
-						existing.grow(moved);
-						remaining.shrink(moved);
-						container.setItem(slot, existing);
-						changed = true;
-					}
-				}
-			}
-			if (changed) {
-				container.setChanged();
-			}
-		}
-		return remaining;
 	}
 
 	public static boolean hasMaterials(PlacementSnapshot snapshot, List<ItemStack> stored) {

@@ -11,6 +11,8 @@ import net.minecraft.server.MinecraftServer;
 import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.command.AllowCommand;
 import top.starwindv.cwa.command.NoUpdateCommand;
+import top.starwindv.cwa.container.ContainerCleanerCommand;
+import top.starwindv.cwa.furnace.FurnaceCommand;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.paster.LitematicaBridge;
 import top.starwindv.cwa.paster.LitematicaSettings;
@@ -32,7 +34,10 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 		}
 
 		if (CarpetServer.settingsManager.getCarpetRule(CwaSettings.NEVER_FULL) == null
-				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.PISTON_HARVEST_AMETHYST) == null) {
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.PISTON_HARVEST_AMETHYST) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.FURNACES_CLEANER) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.CONTAINER_CLEANER) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.ALLOW_SHARE_PERMISSION) == null) {
 			CarpetServer.settingsManager.parseSettingsClass(CwaSettings.class);
 		}
 
@@ -43,7 +48,10 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 
 		if (!ruleObserverRegistered) {
 			CarpetServer.settingsManager.registerRuleObserver((source, rule, value) -> {
-				if (rule.name().equals(LitematicaSettings.LITEMATICA_PASTER)) {
+				if (rule.name().equals(LitematicaSettings.LITEMATICA_PASTER)
+						|| rule.name().equals(CwaSettings.FURNACES_CLEANER)
+						|| rule.name().equals(CwaSettings.CONTAINER_CLEANER)
+						|| rule.name().equals(CwaSettings.ALLOW_SHARE_PERMISSION)) {
 					MinecraftServer server = source != null
 							? source.getServer()
 							: CarpetServer.minecraft_server;
@@ -86,6 +94,8 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 	public void registerCommands(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext commandBuildContext) {
 		AllowCommand.register(dispatcher);
 		NoUpdateCommand.register(dispatcher);
+		FurnaceCommand.register(dispatcher);
+		ContainerCleanerCommand.register(dispatcher);
 		if (LitematicaBridge.isAvailable()) {
 			PasterCommand.register(dispatcher);
 		}
