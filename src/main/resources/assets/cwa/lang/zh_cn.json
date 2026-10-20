@@ -46,8 +46,6 @@
 	"cwa.paster.list.column.required": "需求",
 	"cwa.paster.list.column.stored": "已收",
 	"cwa.paster.list.column.missing": "缺失",
-	"cwa.paster.protection.enabled": "已开启 Litematica 的 loadEntireSchematics 选项，暂存的投影不会被卸载",
-	"cwa.paster.protection.failed": "无法开启 Litematica 的 loadEntireSchematics 选项，投影可能会被卸载",
 	"cwa.paster.protection.unload_blocked": "该投影仍有打印机暂存材料，无法卸载。请先返还材料。",
 	"carpet.rule.LitematicaPaster.name": "投影打印机",
 	"carpet.rule.LitematicaPaster.desc": "增强投影打印机, 使其获得生存模式下可用的粘贴功能",

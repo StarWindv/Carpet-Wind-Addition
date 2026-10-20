@@ -23,7 +23,6 @@ import top.starwindv.cwa.noupdate.NoUpdateManager;
 
 public final class PasterManager {
 	private static @Nullable ActivePaste activePaste;
-	private static Boolean loadEntireOriginal;
 	private static volatile Set<String> protectedPlacementIds = Set.of();
 
 	private PasterManager() {
@@ -448,10 +447,6 @@ public final class PasterManager {
 			return false;
 		}
 
-		if (data.hasAny()) {
-			protectProjection();
-		}
-
 		if (LitematicaBridge.hasPasteTask()) {
 			source.sendFailure(Component.translatable("cwa.paster.paste.busy"));
 			return false;
@@ -546,8 +541,6 @@ public final class PasterManager {
 					success ? "cwa.paster.paste.finished" : "cwa.paster.paste.failed"
 			));
 		}
-
-		releaseProtectionIfEmpty(server);
 	}
 
 	private static void consumePastedMaterials(
@@ -569,12 +562,6 @@ public final class PasterManager {
 	}
 
 	public static void onServerLoaded(MinecraftServer server) {
-		PasterData data = PasterData.get(server);
-		if (data != null && data.hasAny()) {
-			protectProjection();
-		} else {
-			releaseProtectionIfEmpty(server);
-		}
 		refreshProtectedPlacements(server);
 	}
 
@@ -587,37 +574,6 @@ public final class PasterManager {
 			activePaste = null;
 		}
 		protectedPlacementIds = Set.of();
-	}
-
-	public static boolean protectProjection() {
-		if (!LitematicaBridge.isAvailable() || LitematicaBridge.getLoadEntireSchematics()) {
-			return true;
-		}
-
-		if (!LitematicaBridge.setLoadEntireSchematics(true)) {
-			return false;
-		}
-
-		if (loadEntireOriginal == null) {
-			loadEntireOriginal = false;
-		}
-		return true;
-	}
-
-	public static void releaseProtectionIfEmpty(MinecraftServer server) {
-		if (activePaste != null) {
-			return;
-		}
-
-		PasterData data = PasterData.get(server);
-		if (data != null && data.hasAny()) {
-			return;
-		}
-
-		if (loadEntireOriginal != null) {
-			LitematicaBridge.setLoadEntireSchematics(loadEntireOriginal);
-			loadEntireOriginal = null;
-		}
 	}
 
 	private static int[] requiredRemaining(List<PasterMaterial> required, List<ItemStack> stored) {

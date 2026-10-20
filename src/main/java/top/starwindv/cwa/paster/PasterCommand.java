@@ -61,7 +61,6 @@ public final class PasterCommand {
 
 		PasterManager.CollectResult result = PasterManager.collectSelf(player, snapshot);
 		sendCollectResult(source, result);
-		sendProtectionMessage(source);
 		return result.collected() > 0 ? 1 : 0;
 	}
 
@@ -83,7 +82,6 @@ public final class PasterCommand {
 				end
 		);
 		sendCollectResult(source, result);
-		sendProtectionMessage(source);
 		return result.collected() > 0 ? 1 : 0;
 	}
 
@@ -276,7 +274,6 @@ public final class PasterCommand {
 
 		PasterManager.ReturnResult result = PasterManager.returnSelf(player, snapshot);
 		sendReturnMessage(source, result);
-		PasterManager.releaseProtectionIfEmpty(source.getServer());
 		return result.returned() > 0 ? 1 : 0;
 	}
 
@@ -301,7 +298,6 @@ public final class PasterCommand {
 				end
 		);
 		sendReturnMessage(source, result);
-		PasterManager.releaseProtectionIfEmpty(source.getServer());
 		return result.returned() > 0 ? 1 : 0;
 	}
 
@@ -360,19 +356,6 @@ public final class PasterCommand {
 				result.returned(),
 				result.remaining()
 		), false);
-	}
-
-	private static void sendProtectionMessage(CommandSourceStack source) {
-		PasterData data = PasterData.get(source.getServer());
-		if (data == null || !data.hasAny()) {
-			return;
-		}
-
-		if (PasterManager.protectProjection()) {
-			source.sendSuccess(() -> Component.translatable("cwa.paster.protection.enabled"), false);
-		} else {
-			source.sendFailure(Component.translatable("cwa.paster.protection.failed"));
-		}
 	}
 
 	private static PlacementSnapshot snapshot(CommandSourceStack source) {

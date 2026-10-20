@@ -1,7 +1,6 @@
 package top.starwindv.cwa.paster;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -37,7 +36,6 @@ public final class LitematicaBridge {
 	private static final String COMPLETION_LISTENER = "fi.dy.masa.malilib.interfaces.ICompletionListener";
 	private static final String PASTE_TASK = "fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkDirect";
 	private static final String LAYER_RANGE = "fi.dy.masa.malilib.util.position.LayerRange";
-	private static final String CONFIGS_GENERIC = "fi.dy.masa.litematica.config.Configs$Generic";
 
 	private static boolean initialized;
 	private static boolean available;
@@ -56,7 +54,6 @@ public final class LitematicaBridge {
 	private static Class<?> completionListenerClass;
 	private static Class<?> pasteTaskClass;
 	private static Class<?> layerRangeClass;
-	private static Class<?> configsGenericClass;
 
 	private LitematicaBridge() {
 	}
@@ -98,7 +95,6 @@ public final class LitematicaBridge {
 			completionListenerClass = Class.forName(COMPLETION_LISTENER);
 			pasteTaskClass = Class.forName(PASTE_TASK);
 			layerRangeClass = Class.forName(LAYER_RANGE);
-			configsGenericClass = Class.forName(CONFIGS_GENERIC);
 			available = true;
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Litematica paster integration is unavailable", throwable);
@@ -359,37 +355,6 @@ public final class LitematicaBridge {
 					.invoke(scheduler, pasteTaskClass);
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to inspect the Litematica task scheduler", throwable);
-			return false;
-		}
-	}
-
-	public static boolean getLoadEntireSchematics() {
-		if (!isAvailable()) {
-			return false;
-		}
-
-		try {
-			Field field = configsGenericClass.getField("LOAD_ENTIRE_SCHEMATICS");
-			Object config = field.get(null);
-			return (Boolean) config.getClass().getMethod("getBooleanValue").invoke(config);
-		} catch (Throwable throwable) {
-			CarpetWindAddition.LOGGER.warn("Failed to read Litematica's loadEntireSchematics option", throwable);
-			return false;
-		}
-	}
-
-	public static boolean setLoadEntireSchematics(boolean value) {
-		if (!isAvailable()) {
-			return false;
-		}
-
-		try {
-			Field field = configsGenericClass.getField("LOAD_ENTIRE_SCHEMATICS");
-			Object config = field.get(null);
-			config.getClass().getMethod("setBooleanValue", boolean.class).invoke(config, value);
-			return true;
-		} catch (Throwable throwable) {
-			CarpetWindAddition.LOGGER.warn("Failed to change Litematica's loadEntireSchematics option", throwable);
 			return false;
 		}
 	}

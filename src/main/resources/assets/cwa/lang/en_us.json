@@ -46,8 +46,6 @@
 	"cwa.paster.list.column.required": "Need",
 	"cwa.paster.list.column.stored": "Have",
 	"cwa.paster.list.column.missing": "Miss",
-	"cwa.paster.protection.enabled": "Litematica's loadEntireSchematics option is enabled so the stored projection cannot be unloaded",
-	"cwa.paster.protection.failed": "Could not enable Litematica's loadEntireSchematics option; the projection may be unloaded",
 	"cwa.paster.protection.unload_blocked": "This schematic still has materials stored by the paster and cannot be unloaded. Return the materials first.",
 	"carpet.rule.LitematicaPaster.name": "Litematica Paster",
 	"carpet.rule.LitematicaPaster.desc": "Enables the /paster command for collecting, pasting, and returning materials for the currently selected Litematica placement.",
