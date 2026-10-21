@@ -210,7 +210,7 @@ public final class PasterCommand {
 			int extraIndex = -1;
 			for (int index = 0; index < lines.size(); index++) {
 				MaterialLine line = lines.get(index);
-				if (line.extra() && ItemStack.isSameItemSameComponents(line.sample(), stack)) {
+				if (line.extra() && PasterMaterials.matches(line.sample(), stack)) {
 					extraIndex = index;
 					break;
 				}
@@ -241,7 +241,7 @@ public final class PasterCommand {
 
 	private static boolean isRequired(List<PasterMaterial> required, ItemStack stack) {
 		for (PasterMaterial material : required) {
-			if (ItemStack.isSameItemSameComponents(material.sample(), stack)) {
+			if (PasterMaterials.matches(material.sample(), stack)) {
 				return true;
 			}
 		}

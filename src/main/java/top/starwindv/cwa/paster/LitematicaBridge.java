@@ -236,7 +236,7 @@ public final class LitematicaBridge {
 	private static void mergeRequired(List<PasterMaterial> required, ItemStack stack, int count) {
 		for (int i = 0; i < required.size(); i++) {
 			PasterMaterial material = required.get(i);
-			if (ItemStack.isSameItemSameComponents(material.sample(), stack)) {
+			if (PasterMaterials.matches(material.sample(), stack)) {
 				required.set(i, new PasterMaterial(material.sample(), material.count() + count));
 				return;
 			}

@@ -154,7 +154,7 @@ public final class PasterManager {
 			}
 
 			PasterMaterial material = required.get(i);
-			if (!ItemStack.isSameItemSameComponents(slotStack, material.sample())) {
+			if (!PasterMaterials.matches(slotStack, material.sample())) {
 				continue;
 			}
 
@@ -199,7 +199,7 @@ public final class PasterManager {
 			}
 
 			PasterMaterial material = required.get(i);
-			if (!ItemStack.isSameItemSameComponents(slotStack, material.sample())) {
+			if (!PasterMaterials.matches(slotStack, material.sample())) {
 				continue;
 			}
 
@@ -250,7 +250,7 @@ public final class PasterManager {
 				}
 
 				PasterMaterial material = required.get(requiredIndex);
-				if (!ItemStack.isSameItemSameComponents(nestedStack, material.sample())) {
+				if (!PasterMaterials.matches(nestedStack, material.sample())) {
 					continue;
 				}
 
@@ -279,7 +279,7 @@ public final class PasterManager {
 
 	private static boolean isRequired(List<PasterMaterial> required, int[] remaining, ItemStack stack) {
 		for (int index = 0; index < required.size(); index++) {
-			if (remaining[index] > 0 && ItemStack.isSameItemSameComponents(required.get(index).sample(), stack)) {
+			if (remaining[index] > 0 && PasterMaterials.matches(required.get(index).sample(), stack)) {
 				return true;
 			}
 		}

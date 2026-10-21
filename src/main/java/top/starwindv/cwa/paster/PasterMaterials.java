@@ -3,9 +3,21 @@ package top.starwindv.cwa.paster;
 import java.util.Iterator;
 import java.util.List;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 public final class PasterMaterials {
 	private PasterMaterials() {
+	}
+
+	public static boolean matches(ItemStack first, ItemStack second) {
+		if (first.isEmpty() || second.isEmpty()) {
+			return false;
+		}
+		// Mods such as Thirst add extra components to water buckets; treat all water buckets as the same material.
+		if (first.is(Items.WATER_BUCKET) && second.is(Items.WATER_BUCKET)) {
+			return true;
+		}
+		return ItemStack.isSameItemSameComponents(first, second);
 	}
 
 	public static void add(List<ItemStack> stacks, ItemStack stack) {
@@ -15,7 +27,7 @@ public final class PasterMaterials {
 
 		ItemStack remaining = stack.copy();
 		for (ItemStack stored : stacks) {
-			if (!ItemStack.isSameItemSameComponents(stored, remaining)) {
+			if (!matches(stored, remaining)) {
 				continue;
 			}
 
@@ -42,7 +54,7 @@ public final class PasterMaterials {
 	public static int count(List<ItemStack> stacks, ItemStack sample) {
 		int count = 0;
 		for (ItemStack stack : stacks) {
-			if (ItemStack.isSameItemSameComponents(stack, sample)) {
+			if (matches(stack, sample)) {
 				count += stack.getCount();
 			}
 		}
@@ -58,7 +70,7 @@ public final class PasterMaterials {
 		Iterator<ItemStack> iterator = stacks.iterator();
 		while (iterator.hasNext() && remaining > 0) {
 			ItemStack stack = iterator.next();
-			if (!ItemStack.isSameItemSameComponents(stack, sample)) {
+			if (!matches(stack, sample)) {
 				continue;
 			}
 
