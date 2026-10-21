@@ -41,7 +41,10 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.CONTAINER_CLEANER) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.ALLOW_SHARE_PERMISSION) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.STACK_ANYTHING) == null
-				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.MAX_STACK_ANYTHING_SIZE) == null) {
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.MAX_STACK_ANYTHING_SIZE) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.MOBS_NO_EQUIPMENT_DROP) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.BUCKET_TANS_OSIDIAN_TO_LAVA) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.OBSIDIAN_TO_LAVA_RECIPE) == null) {
 			CarpetServer.settingsManager.parseSettingsClass(CwaSettings.class);
 		}
 

@@ -15,6 +15,9 @@ public final class CwaSettings {
 	public static final String ALLOW_SHARE_PERMISSION = "AllowSharePermission";
 	public static final String STACK_ANYTHING = "StackAnything";
 	public static final String MAX_STACK_ANYTHING_SIZE = "MaxStackAnythingSize";
+	public static final String MOBS_NO_EQUIPMENT_DROP = "MobsNoEquipmentDrop";
+	public static final String BUCKET_TANS_OSIDIAN_TO_LAVA = "BucketTansOsidianToLava";
+	public static final String OBSIDIAN_TO_LAVA_RECIPE = "ObsidianToLavaRecipe";
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NeverFull = false;
@@ -36,6 +39,15 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, strict = false, validators = {CwaSettings.PositiveInteger.class})
 	public static int MaxStackAnythingSize = 64;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean MobsNoEquipmentDrop = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean BucketTansOsidianToLava = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean ObsidianToLavaRecipe = false;
 
 	private CwaSettings() {
 	}

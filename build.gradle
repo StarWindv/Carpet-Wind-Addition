@@ -48,7 +48,8 @@ dependencies {
 	if (file('.refs/1.21.1').isDirectory()) {
 		modImplementation files(
 			".refs/1.21.1/fabric-api-modules/fabric-api-base-0.116.17.jar",
-			".refs/1.21.1/fabric-api-modules/fabric-networking-api-v1-0.116.17.jar"
+			".refs/1.21.1/fabric-api-modules/fabric-networking-api-v1-0.116.17.jar",
+			".refs/1.21.1/fabric-api-modules/fabric-resource-loader-v0-0.116.17.jar"
 		)
 
 		modImplementation files(".refs/1.21.1/fabric-carpet-1.21-1.4.147+v240613.jar")

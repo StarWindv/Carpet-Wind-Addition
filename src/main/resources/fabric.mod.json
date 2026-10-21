@@ -32,6 +32,7 @@
 		"java": ">=21",
 		"fabric-api-base": "*",
 		"fabric-networking-api-v1": "*",
+		"fabric-resource-loader-v0": "*",
 		"carpet": ">=1.4.147"
 	}
 }
