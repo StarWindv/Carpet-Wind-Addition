@@ -6,6 +6,7 @@
 		"BlockStateBaseMixin",
 		"CommandsMixin",
 		"ItemInstanceMixin",
+		"ItemStackDurabilityMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin"
