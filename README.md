@@ -221,18 +221,20 @@ Carpet 规则:
 
 ```text
 /carpet StackAnything true
+/carpet MaxStackAnythingSize <正整数>
 ```
 
 默认关闭. 启用后可使用 `/stack`:
 
 ```text
-/stack <物品 ID> <1-64>
+/stack <物品 ID> <1-当前上限>
 ```
 
-- `<物品 ID>`: 支持 `dropper` 和 `minecraft:dropper` 两种写法.
+- `MaxStackAnythingSize` 默认 `64`, 只限制 `/stack` 的可设置范围, 不影响已经保存的堆叠上限或其它堆叠行为.
+- `<物品 ID>`: 支持带命名空间 (例如 `create:copper_sheet`) 和不带命名空间 (例如 `copper_sheet`). 如果给出的完整 ID 不存在, 会再按路径在所有已注册命名空间中查找; 多个匹配会提示使用命名空间.
 - 设置只按物品名称匹配, 不区分 NBT/组件.
 - 实际堆叠仍然要求 NBT/组件相同, 例如附魔不同的附魔书不会堆叠.
-- 调低上限时, 已经存在的超限堆叠不会自动拆分.
+- 调低某个物品的堆叠上限时, 已经存在的超限堆叠不会自动拆分.
 
 ---
 

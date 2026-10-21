@@ -34,7 +34,7 @@ public final class StackSizeData extends SavedData {
 	public StackSizeData(List<Entry> entries) {
 		this.sizes = new LinkedHashMap<>();
 		for (Entry entry : entries) {
-			if (entry.size() >= 1 && entry.size() <= 64) {
+			if (entry.size() > 0) {
 				this.sizes.put(entry.item(), entry.size());
 			}
 		}
@@ -53,7 +53,7 @@ public final class StackSizeData extends SavedData {
 	}
 
 	public void set(String itemId, int size) {
-		if (size < 1 || size > 64) {
+		if (size <= 0) {
 			return;
 		}
 		sizes.put(itemId, size);
