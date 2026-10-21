@@ -27,7 +27,7 @@ public final class StackSizeManager {
 	}
 
 	public static void set(Item item, int size) {
-		if (size >= 1 && size <= 64) {
+		if (size > 0) {
 			SIZES.put(item, size);
 		}
 	}
