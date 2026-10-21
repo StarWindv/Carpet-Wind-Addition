@@ -3,13 +3,22 @@
 	"package": "top.starwindv.cwa.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"AbstractFurnaceBlockEntityMixin",
 		"BlockStateBaseMixin",
+		"BucketItemMixin",
 		"CommandsMixin",
+		"ContainerMixin",
+		"ItemCommandsMixin",
+		"ItemCraftingRemainderMixin",
 		"ItemInstanceMixin",
+		"ItemStackCodecLimitMixin",
 		"ItemStackDurabilityMixin",
+		"MobEquipmentDropMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",
-		"ServerGamePacketListenerImplMixin"
+		"ServerGamePacketListenerImplMixin",
+		"ShapelessRecipeAccessor",
+		"ShapelessRecipeMixin"
 	],
 	"client": [
 		"ClientSuggestionProviderMixin"

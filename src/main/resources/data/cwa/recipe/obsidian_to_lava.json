@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:crafting_shapeless",
+	"category": "misc",
+	"ingredients": [
+		"minecraft:bucket",
+		"minecraft:obsidian"
+	],
+	"result": {
+		"id": "minecraft:lava_bucket"
+	}
+}
