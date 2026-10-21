@@ -10,6 +10,7 @@ public final class CwaSettings {
 	public static final String FURNACES_CLEANER = "FurnacesCleaner";
 	public static final String CONTAINER_CLEANER = "ContainerCleaner";
 	public static final String ALLOW_SHARE_PERMISSION = "AllowSharePermission";
+	public static final String STACK_ANYTHING = "StackAnything";
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NeverFull = false;
@@ -25,6 +26,9 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean AllowSharePermission = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean StackAnything = false;
 
 	private CwaSettings() {
 	}

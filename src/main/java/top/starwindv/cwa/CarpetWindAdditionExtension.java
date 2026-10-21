@@ -19,6 +19,8 @@ import top.starwindv.cwa.paster.LitematicaSettings;
 import top.starwindv.cwa.paster.PasterCommand;
 import top.starwindv.cwa.paster.PasterManager;
 import top.starwindv.cwa.rule.CwaSettings;
+import top.starwindv.cwa.stack.StackCommand;
+import top.starwindv.cwa.stack.StackSizeManager;
 
 public final class CarpetWindAdditionExtension implements CarpetExtension {
 	public static final CarpetWindAdditionExtension INSTANCE = new CarpetWindAdditionExtension();
@@ -37,7 +39,8 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.PISTON_HARVEST_AMETHYST) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.FURNACES_CLEANER) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.CONTAINER_CLEANER) == null
-				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.ALLOW_SHARE_PERMISSION) == null) {
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.ALLOW_SHARE_PERMISSION) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.STACK_ANYTHING) == null) {
 			CarpetServer.settingsManager.parseSettingsClass(CwaSettings.class);
 		}
 
@@ -51,7 +54,8 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 				if (rule.name().equals(LitematicaSettings.LITEMATICA_PASTER)
 						|| rule.name().equals(CwaSettings.FURNACES_CLEANER)
 						|| rule.name().equals(CwaSettings.CONTAINER_CLEANER)
-						|| rule.name().equals(CwaSettings.ALLOW_SHARE_PERMISSION)) {
+						|| rule.name().equals(CwaSettings.ALLOW_SHARE_PERMISSION)
+						|| rule.name().equals(CwaSettings.STACK_ANYTHING)) {
 					MinecraftServer server = source != null
 							? source.getServer()
 							: CarpetServer.minecraft_server;
@@ -77,6 +81,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 	public void onServerLoadedWorlds(MinecraftServer server) {
 		NoUpdateManager.refresh(server);
 		PasterManager.onServerLoaded(server);
+		StackSizeManager.onServerLoaded(server);
 	}
 
 	@Override
@@ -88,6 +93,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 	public void onServerClosed(MinecraftServer server) {
 		NoUpdateManager.reset();
 		PasterManager.onServerClosed(server);
+		StackSizeManager.clear();
 	}
 
 	@Override
@@ -96,6 +102,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 		NoUpdateCommand.register(dispatcher);
 		FurnaceCommand.register(dispatcher);
 		ContainerCleanerCommand.register(dispatcher);
+		StackCommand.register(dispatcher);
 		if (LitematicaBridge.isAvailable()) {
 			PasterCommand.register(dispatcher);
 		}

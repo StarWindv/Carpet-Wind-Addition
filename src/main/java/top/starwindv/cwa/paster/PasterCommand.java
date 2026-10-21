@@ -356,6 +356,24 @@ public final class PasterCommand {
 				result.returned(),
 				result.remaining()
 		), false);
+
+		if (!result.containers().isEmpty()) {
+			source.sendSuccess(() -> Component.translatable(
+					"cwa.paster.return.containers",
+					formatPositions(result.containers())
+			).withStyle(ChatFormatting.GRAY), false);
+		}
+	}
+
+	private static String formatPositions(List<BlockPos> positions) {
+		StringBuilder builder = new StringBuilder();
+		for (BlockPos pos : positions) {
+			if (builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(pos.getX()).append(' ').append(pos.getY()).append(' ').append(pos.getZ());
+		}
+		return builder.toString();
 	}
 
 	private static PlacementSnapshot snapshot(CommandSourceStack source) {

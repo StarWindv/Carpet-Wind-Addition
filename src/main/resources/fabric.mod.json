@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"top.starwindv.cwa.CarpetWindAddition"
+		],
+		"client": [
+			"top.starwindv.cwa.CarpetWindAdditionClient"
 		]
 	},
 	"mixins": [

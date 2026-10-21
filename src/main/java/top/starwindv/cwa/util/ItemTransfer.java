@@ -49,13 +49,13 @@ public final class ItemTransfer {
 		return remaining;
 	}
 
-	public static List<Container> findContainers(
+	public static List<ContainerEntry> findContainerEntries(
 			ServerLevel level,
 			BlockPos first,
 			BlockPos second,
 			Predicate<Container> filter
 	) {
-		List<Container> containers = new ArrayList<>();
+		List<ContainerEntry> entries = new ArrayList<>();
 		Set<Container> visited = Collections.newSetFromMap(new IdentityHashMap<>());
 
 		for (BlockPos pos : BlockPos.betweenClosed(first, second)) {
@@ -63,10 +63,21 @@ public final class ItemTransfer {
 			if (blockEntity instanceof Container container
 					&& visited.add(container)
 					&& filter.test(container)) {
-				containers.add(container);
+				entries.add(new ContainerEntry(pos.immutable(), container));
 			}
 		}
-		return containers;
+		return entries;
+	}
+
+	public static List<Container> findContainers(
+			ServerLevel level,
+			BlockPos first,
+			BlockPos second,
+			Predicate<Container> filter
+	) {
+		return findContainerEntries(level, first, second, filter).stream()
+				.map(ContainerEntry::container)
+				.toList();
 	}
 
 	public static ItemStack insertIntoContainers(List<Container> containers, ItemStack stack) {
@@ -76,33 +87,43 @@ public final class ItemTransfer {
 			if (remaining.isEmpty()) {
 				break;
 			}
-
-			boolean changed = false;
-			for (int slot = 0; slot < container.getContainerSize() && !remaining.isEmpty(); slot++) {
-				if (!container.canPlaceItem(slot, remaining)) {
-					continue;
-				}
-
-				ItemStack existing = container.getItem(slot);
-				if (existing.isEmpty()) {
-					int moved = Math.min(remaining.getCount(), container.getMaxStackSize(remaining));
-					container.setItem(slot, remaining.split(moved));
-					changed = true;
-				} else if (ItemStack.isSameItemSameComponents(existing, remaining)) {
-					int space = container.getMaxStackSize(remaining) - existing.getCount();
-					if (space > 0) {
-						int moved = Math.min(space, remaining.getCount());
-						existing.grow(moved);
-						remaining.shrink(moved);
-						container.setItem(slot, existing);
-						changed = true;
-					}
-				}
-			}
-			if (changed) {
-				container.setChanged();
-			}
+			remaining = insertIntoContainer(container, remaining);
 		}
 		return remaining;
+	}
+
+	public static ItemStack insertIntoContainer(Container container, ItemStack stack) {
+		ItemStack remaining = stack.copy();
+		boolean changed = false;
+
+		for (int slot = 0; slot < container.getContainerSize() && !remaining.isEmpty(); slot++) {
+			if (!container.canPlaceItem(slot, remaining)) {
+				continue;
+			}
+
+			ItemStack existing = container.getItem(slot);
+			if (existing.isEmpty()) {
+				int moved = Math.min(remaining.getCount(), container.getMaxStackSize(remaining));
+				container.setItem(slot, remaining.split(moved));
+				changed = true;
+			} else if (ItemStack.isSameItemSameComponents(existing, remaining)) {
+				int space = container.getMaxStackSize(remaining) - existing.getCount();
+				if (space > 0) {
+					int moved = Math.min(space, remaining.getCount());
+					existing.grow(moved);
+					remaining.shrink(moved);
+					container.setItem(slot, existing);
+					changed = true;
+				}
+			}
+		}
+
+		if (changed) {
+			container.setChanged();
+		}
+		return remaining;
+	}
+
+	public record ContainerEntry(BlockPos pos, Container container) {
 	}
 }

@@ -3,6 +3,7 @@ package top.starwindv.cwa.paster;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -306,7 +307,7 @@ public final class PasterManager {
 		if (server != null) {
 			refreshProtectedPlacements(server);
 		}
-		return new ReturnResult(before - total(remaining), total(remaining));
+		return new ReturnResult(before - total(remaining), total(remaining), List.of());
 	}
 
 	public static ReturnResult returnRange(
@@ -319,20 +320,32 @@ public final class PasterManager {
 		List<ItemStack> stored = data.get(snapshot.id());
 		int before = total(stored);
 		List<ItemStack> remaining = new ArrayList<>();
-		List<Container> containers = stored.isEmpty()
+		List<ItemTransfer.ContainerEntry> entries = stored.isEmpty()
 				? List.of()
-				: ItemTransfer.findContainers(level, first, second, container -> true);
+				: ItemTransfer.findContainerEntries(level, first, second, container -> true);
+		Set<BlockPos> filled = new LinkedHashSet<>();
 
 		for (ItemStack stack : stored) {
-			ItemStack leftover = ItemTransfer.insertIntoContainers(containers, stack);
-			if (!leftover.isEmpty()) {
-				remaining.add(leftover);
+			ItemStack remainingStack = stack.copy();
+			for (ItemTransfer.ContainerEntry entry : entries) {
+				if (remainingStack.isEmpty()) {
+					break;
+				}
+
+				int beforeCount = remainingStack.getCount();
+				remainingStack = ItemTransfer.insertIntoContainer(entry.container(), remainingStack);
+				if (remainingStack.getCount() < beforeCount) {
+					filled.add(entry.pos());
+				}
+			}
+			if (!remainingStack.isEmpty()) {
+				remaining.add(remainingStack);
 			}
 		}
 
 		data.set(snapshot.id(), remaining);
 		refreshProtectedPlacements(level.getServer());
-		return new ReturnResult(before - total(remaining), total(remaining));
+		return new ReturnResult(before - total(remaining), total(remaining), List.copyOf(filled));
 	}
 
 	public static boolean hasMaterials(PlacementSnapshot snapshot, List<ItemStack> stored) {
@@ -527,7 +540,7 @@ public final class PasterManager {
 	public record CollectResult(int collected, int missing, List<CollectedMaterial> materials) {
 	}
 
-	public record ReturnResult(int returned, int remaining) {
+	public record ReturnResult(int returned, int remaining, List<BlockPos> containers) {
 	}
 
 	private static final class ActivePaste {

@@ -5,6 +5,7 @@
 	"mixins": [
 		"BlockStateBaseMixin",
 		"CommandsMixin",
+		"ItemInstanceMixin",
 		"PistonBaseBlockMixin",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin"
