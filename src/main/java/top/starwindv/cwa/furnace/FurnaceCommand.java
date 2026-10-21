@@ -20,13 +20,14 @@ import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.rule.CwaSettings;
 import top.starwindv.cwa.util.ItemReceiver;
 import top.starwindv.cwa.util.ItemTransfer;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class FurnaceCommand {
 	private FurnaceCommand() {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		Predicate<CommandSourceStack> permission = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+		Predicate<CommandSourceStack> permission = source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS);
 		dispatcher.register(Commands.literal("furnace")
 				.requires(source -> CwaSettings.FurnacesCleaner
 						&& (AllowManager.canUseHostCommand(source, "furnace") || permission.test(source)))
@@ -80,11 +81,11 @@ public final class FurnaceCommand {
 
 	private static void sendResult(CommandSourceStack source, FurnaceCleaner.Result result) {
 		if (result.found() == 0) {
-			source.sendSuccess(() -> Component.translatable("cwa.furnace.none"), false);
+			source.sendSuccess(() -> CwaMessages.translatable("cwa.furnace.none"), false);
 			return;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.furnace.result",
 				result.furnaces(),
 				result.found(),
@@ -92,7 +93,7 @@ public final class FurnaceCommand {
 		), false);
 
 		if (result.leftover() > 0) {
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.furnace.leftover",
 					result.leftover(),
 					result.leftoverSlots()

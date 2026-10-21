@@ -18,6 +18,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import top.starwindv.cwa.allow.AllowManager;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class PasterCommand {
 	private static final int MATERIALS_PER_PAGE = 10;
@@ -104,7 +105,7 @@ public final class PasterCommand {
 		List<ItemStack> stored = data == null ? List.of() : data.get(snapshot.id());
 		List<MaterialLine> lines = materialLines(snapshot, stored);
 		if (lines.isEmpty()) {
-			source.sendSuccess(() -> Component.translatable("cwa.paster.list.empty"), false);
+			source.sendSuccess(() -> CwaMessages.translatable("cwa.paster.list.empty"), false);
 			return 0;
 		}
 
@@ -133,29 +134,29 @@ public final class PasterCommand {
 		}
 
 		MutableComponent table = Component.empty();
-		table.append(Component.translatable("cwa.paster.list.header", snapshot.name()).withStyle(ChatFormatting.GOLD));
+		table.append(CwaMessages.translatable("cwa.paster.list.header", snapshot.name()).withStyle(ChatFormatting.GOLD));
 		table.append(Component.literal("\n"));
-		table.append(Component.translatable(
+		table.append(CwaMessages.translatable(
 				"cwa.paster.list.summary",
 				requiredTotal,
 				storedCount,
 				missingTotal
 		).withStyle(ChatFormatting.YELLOW));
 		table.append(Component.literal("\n"));
-		table.append(Component.translatable("cwa.paster.list.page", page, pages).withStyle(ChatFormatting.GRAY));
+		table.append(CwaMessages.translatable("cwa.paster.list.page", page, pages).withStyle(ChatFormatting.GRAY));
 		table.append(Component.literal("\n"));
 
-		table.append(Component.translatable(
+		table.append(CwaMessages.translatable(
 				"cwa.paster.list.columns",
-				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.required")),
-				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.stored")),
-				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.missing")),
-				Component.translatable("cwa.paster.list.column.item")
+				Component.literal(" ").append(CwaMessages.translatable("cwa.paster.list.column.required")),
+				Component.literal(" ").append(CwaMessages.translatable("cwa.paster.list.column.stored")),
+				Component.literal(" ").append(CwaMessages.translatable("cwa.paster.list.column.missing")),
+				CwaMessages.translatable("cwa.paster.list.column.item")
 		).withStyle(ChatFormatting.AQUA));
 		table.append(Component.literal("\n"));
 
 		if (hasExtra) {
-			table.append(Component.translatable("cwa.paster.list.legend").withStyle(ChatFormatting.DARK_GRAY));
+			table.append(CwaMessages.translatable("cwa.paster.list.legend").withStyle(ChatFormatting.DARK_GRAY));
 			table.append(Component.literal("\n"));
 		}
 
@@ -169,7 +170,7 @@ public final class PasterCommand {
 					? Component.literal(padLeft("-", COUNT_WIDTH)).withStyle(ChatFormatting.DARK_GRAY)
 					: Component.literal(padLeft(Integer.toString(line.missing()), COUNT_WIDTH))
 							.withStyle(line.missing() > 0 ? ChatFormatting.RED : ChatFormatting.GREEN);
-			table.append(Component.translatable(
+			table.append(CwaMessages.translatable(
 					"cwa.paster.list.row",
 					line.extra() ? padLeft("-", COUNT_WIDTH) : padLeft(Integer.toString(line.total()), COUNT_WIDTH),
 					padLeft(Integer.toString(line.stored()), COUNT_WIDTH),
@@ -263,7 +264,7 @@ public final class PasterCommand {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
 		if (PasterManager.isPasteRunning()) {
-			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.return.busy"));
 			return 0;
 		}
 
@@ -280,7 +281,7 @@ public final class PasterCommand {
 	private static int returnRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		if (PasterManager.isPasteRunning()) {
-			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.return.busy"));
 			return 0;
 		}
 
@@ -303,7 +304,7 @@ public final class PasterCommand {
 
 	private static void sendCollectResult(CommandSourceStack source, PasterManager.CollectResult result) {
 		if (result.materials().isEmpty()) {
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.paster.collect.none",
 					result.missing()
 			).withStyle(ChatFormatting.GRAY), false);
@@ -311,18 +312,18 @@ public final class PasterCommand {
 		}
 
 		MutableComponent table = Component.empty();
-		table.append(Component.translatable(
+		table.append(CwaMessages.translatable(
 				"cwa.paster.collect.header",
 				result.materials().size(),
 				result.collected(),
 				result.missing()
 		).withStyle(ChatFormatting.GOLD));
 		table.append(Component.literal("\n"));
-		table.append(Component.translatable(
+		table.append(CwaMessages.translatable(
 				"cwa.paster.collect.columns",
-				Component.literal(" ").append(Component.translatable("cwa.paster.collect.column.collected")),
-				Component.literal(" ").append(Component.translatable("cwa.paster.collect.column.missing")),
-				Component.translatable("cwa.paster.list.column.item")
+				Component.literal(" ").append(CwaMessages.translatable("cwa.paster.collect.column.collected")),
+				Component.literal(" ").append(CwaMessages.translatable("cwa.paster.collect.column.missing")),
+				CwaMessages.translatable("cwa.paster.list.column.item")
 		).withStyle(ChatFormatting.AQUA));
 		table.append(Component.literal("\n"));
 
@@ -331,7 +332,7 @@ public final class PasterCommand {
 			ChatFormatting rowColor = index % 2 == 0 ? ChatFormatting.GRAY : ChatFormatting.WHITE;
 			Component missing = Component.literal(padLeft(Integer.toString(material.missing()), COUNT_WIDTH))
 					.withStyle(material.missing() > 0 ? ChatFormatting.RED : ChatFormatting.GREEN);
-			table.append(Component.translatable(
+			table.append(CwaMessages.translatable(
 					"cwa.paster.collect.row",
 					padLeft(Integer.toString(material.collected()), COUNT_WIDTH),
 					missing,
@@ -347,18 +348,18 @@ public final class PasterCommand {
 
 	private static void sendReturnMessage(CommandSourceStack source, PasterManager.ReturnResult result) {
 		if (result.returned() <= 0 && result.remaining() <= 0) {
-			source.sendSuccess(() -> Component.translatable("cwa.paster.return.none"), false);
+			source.sendSuccess(() -> CwaMessages.translatable("cwa.paster.return.none"), false);
 			return;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.paster.return.result",
 				result.returned(),
 				result.remaining()
 		), false);
 
 		if (!result.containers().isEmpty()) {
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.paster.return.containers",
 					formatPositions(result.containers())
 			).withStyle(ChatFormatting.GRAY), false);
@@ -379,14 +380,14 @@ public final class PasterCommand {
 	private static PlacementSnapshot snapshot(CommandSourceStack source) {
 		PlacementSnapshot snapshot = LitematicaBridge.currentPlacement();
 		if (snapshot == null) {
-			source.sendFailure(Component.translatable("cwa.paster.no_projection"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.no_projection"));
 			return null;
 		}
 
 		ServerLevel level = source.getLevel();
-		String dimension = level.dimension().identifier().toString();
+		String dimension = level.dimension().location().toString();
 		if (!dimension.equals(snapshot.dimension())) {
-			source.sendFailure(Component.translatable("cwa.paster.wrong_dimension"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.wrong_dimension"));
 			return null;
 		}
 		return snapshot;

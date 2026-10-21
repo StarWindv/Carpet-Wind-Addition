@@ -16,13 +16,9 @@ import top.starwindv.cwa.allow.AllowManager;
 public abstract class CommandsMixin {
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	@Inject(method = "fillUsableCommands", at = @At("HEAD"), cancellable = true)
-	private static void cwa$fillUsableCommands(CommandNode source, CommandNode target, Object commandFilter,
+	private static void cwa$fillUsableCommands(CommandNode source, CommandNode target, CommandSourceStack commandFilter,
 			Map converted, CallbackInfo ci) {
-		if (!(commandFilter instanceof CommandSourceStack sourceStack)) {
-			return;
-		}
-
-		cwa$fillUsableCommands(source, target, sourceStack, converted, false);
+		cwa$fillUsableCommands(source, target, commandFilter, converted, false);
 		ci.cancel();
 	}
 

@@ -5,13 +5,11 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.suggestion.Suggestions;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
 import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
 import net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.server.permissions.PermissionSet;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -41,8 +39,8 @@ public abstract class ServerGamePacketListenerImplMixin {
 
 		CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
 		cir.setReturnValue(dispatcher.parse(
-				Commands.trimOptionalPrefix(command),
-				source.withPermission(PermissionSet.ALL_PERMISSIONS)
+				(command.startsWith("/") ? command.substring(1) : command),
+				source.withPermission(4)
 		));
 	}
 
@@ -72,7 +70,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 		CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
 		ParseResults<CommandSourceStack> parse = dispatcher.parse(
 				command,
-				source.withPermission(PermissionSet.ALL_PERMISSIONS)
+				source.withPermission(4)
 		);
 		dispatcher.getCompletionSuggestions(parse).thenAccept(results -> {
 			Suggestions suggestions = results.getList().size() <= 1000

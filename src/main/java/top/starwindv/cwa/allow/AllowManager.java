@@ -20,7 +20,7 @@ public final class AllowManager {
 		return player != null
 				&& server != null
 				&& server.isSingleplayer()
-				&& server.isSingleplayerOwner(player.nameAndId());
+				&& server.isSingleplayerOwner(player.getGameProfile());
 	}
 
 	public static boolean isAllowed(CommandSourceStack source, String command) {

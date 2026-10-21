@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import top.starwindv.cwa.noupdate.NoUpdateData;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.noupdate.NoUpdateRegion;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class NoUpdateCommand {
 	private NoUpdateCommand() {
@@ -53,15 +54,15 @@ public final class NoUpdateCommand {
 
 		if (!alias.isEmpty()) {
 			if (alias.equals("-")) {
-				source.sendFailure(Component.translatable("cwa.noupdate.alias.dash"));
+				source.sendFailure(CwaMessages.translatable("cwa.noupdate.alias.dash"));
 				return 0;
 			}
 			if (alias.matches("\\d+")) {
-				source.sendFailure(Component.translatable("cwa.noupdate.alias.numeric"));
+				source.sendFailure(CwaMessages.translatable("cwa.noupdate.alias.numeric"));
 				return 0;
 			}
 			if (data != null && data.hasAlias(alias)) {
-				source.sendFailure(Component.translatable("cwa.noupdate.alias.taken", alias));
+				source.sendFailure(CwaMessages.translatable("cwa.noupdate.alias.taken", alias));
 				return 0;
 			}
 		}
@@ -71,7 +72,7 @@ public final class NoUpdateCommand {
 		NoUpdateRegion overlap = data == null ? null : data.findOverlapping(start, end);
 
 		if (overlap != null) {
-			source.sendFailure(Component.translatable(
+			source.sendFailure(CwaMessages.translatable(
 					"cwa.noupdate.overlap",
 					overlap.id(),
 					overlap.displayAlias(),
@@ -84,13 +85,13 @@ public final class NoUpdateCommand {
 		NoUpdateRegion region = NoUpdateData.getOrCreate(level).addRegion(alias, start, end);
 		NoUpdateManager.refresh(source.getServer());
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.noupdate.added",
 				region.id(),
 				region.displayAlias(),
 				region.startString(),
 				region.endString(),
-				Component.translatable("cwa.noupdate.status.disabled")
+				CwaMessages.translatable("cwa.noupdate.status.disabled")
 		), false);
 		return 1;
 	}
@@ -101,19 +102,19 @@ public final class NoUpdateCommand {
 		NoUpdateData data = NoUpdateData.get(level);
 
 		if (data == null || data.regions().isEmpty()) {
-			source.sendSuccess(() -> Component.translatable("cwa.noupdate.list.empty"), false);
+			source.sendSuccess(() -> CwaMessages.translatable("cwa.noupdate.list.empty"), false);
 			return 0;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.noupdate.list.header",
-				level.dimension().identifier().toString()
+				level.dimension().location().toString()
 		), false);
 		for (NoUpdateRegion region : data.regions().stream().sorted(Comparator.comparingInt(NoUpdateRegion::id)).toList()) {
-			Component status = Component.translatable(
+			Component status = CwaMessages.translatable(
 					region.enabled() ? "cwa.noupdate.status.enabled" : "cwa.noupdate.status.disabled"
 			);
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.noupdate.list.entry",
 					region.id(),
 					region.displayAlias(),
@@ -131,13 +132,13 @@ public final class NoUpdateCommand {
 		NoUpdateRegion region = data == null ? null : data.find(target);
 
 		if (region == null) {
-			source.sendFailure(Component.translatable("cwa.noupdate.not_found", target));
+			source.sendFailure(CwaMessages.translatable("cwa.noupdate.not_found", target));
 			return 0;
 		}
 
 		data.setEnabled(region, enabled);
 		NoUpdateManager.refresh(source.getServer());
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				enabled ? "cwa.noupdate.enabled" : "cwa.noupdate.disabled",
 				region.id(),
 				region.displayAlias()
@@ -151,13 +152,13 @@ public final class NoUpdateCommand {
 		NoUpdateRegion region = data == null ? null : data.find(target);
 
 		if (region == null) {
-			source.sendFailure(Component.translatable("cwa.noupdate.not_found", target));
+			source.sendFailure(CwaMessages.translatable("cwa.noupdate.not_found", target));
 			return 0;
 		}
 
 		data.remove(region);
 		NoUpdateManager.refresh(source.getServer());
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.noupdate.removed",
 				region.id(),
 				region.displayAlias(),

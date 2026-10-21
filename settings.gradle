@@ -1,8 +1,19 @@
 pluginManagement {
+	resolutionStrategy {
+		eachPlugin {
+			if (requested.id.id == 'net.fabricmc.fabric-loom-remap') {
+				useModule('net.fabricmc:fabric-loom:1.18.2')
+			}
+		}
+	}
 	repositories {
 		maven {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
+		}
+		maven {
+			name = 'Aliyun Gradle Plugin'
+			url = 'https://maven.aliyun.com/repository/gradle-plugin'
 		}
 		mavenCentral()
 		gradlePluginPortal()

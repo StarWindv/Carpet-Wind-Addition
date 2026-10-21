@@ -19,9 +19,10 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.util.ItemTransfer;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class PasterManager {
 	private static @Nullable ActivePaste activePaste;
@@ -237,7 +238,8 @@ public final class PasterManager {
 			return false;
 		}
 
-		List<ItemStack> nested = new ArrayList<>(contents.allItemsCopyStream().toList());
+		List<ItemStack> nested = new ArrayList<>();
+		contents.nonEmptyItemsCopy().forEach(nested::add);
 		boolean changed = false;
 		for (int index = 0; index < nested.size(); index++) {
 			ItemStack nestedStack = nested.get(index);
@@ -368,7 +370,7 @@ public final class PasterManager {
 	public static boolean startPaste(CommandSourceStack source, ServerPlayer player, PlacementSnapshot snapshot) {
 		MinecraftServer server = source.getServer();
 		if (activePaste != null) {
-			source.sendFailure(Component.translatable("cwa.paster.paste.busy"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.busy"));
 			return false;
 		}
 
@@ -376,7 +378,7 @@ public final class PasterManager {
 		List<PasterMaterial> missing = missingMaterials(snapshot, data.get(snapshot.id()));
 		if (!missing.isEmpty()) {
 			PasterMaterial first = missing.get(0);
-			source.sendFailure(Component.translatable(
+			source.sendFailure(CwaMessages.translatable(
 					"cwa.paster.paste.missing",
 					first.sample().getHoverName(),
 					first.count()
@@ -385,7 +387,7 @@ public final class PasterManager {
 		}
 
 		if (LitematicaBridge.hasPasteTask()) {
-			source.sendFailure(Component.translatable("cwa.paster.paste.busy"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.busy"));
 			return false;
 		}
 
@@ -416,11 +418,11 @@ public final class PasterManager {
 				failure
 		)) {
 			failPaste(server, session);
-			source.sendFailure(Component.translatable("cwa.paster.paste.failed"));
+			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.failed"));
 			return false;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.paster.paste.started",
 				snapshot.name()
 		), false);
@@ -474,7 +476,7 @@ public final class PasterManager {
 
 		ServerPlayer player = server.getPlayerList().getPlayer(session.playerId);
 		if (player != null) {
-			player.sendSystemMessage(Component.translatable(
+			player.sendSystemMessage(CwaMessages.translatable(
 					success ? "cwa.paster.paste.finished" : "cwa.paster.paste.failed"
 			));
 		}

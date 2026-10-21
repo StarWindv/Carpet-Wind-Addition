@@ -1,9 +1,27 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
 }
 
 repositories {
+	maven {
+		name = 'Aliyun Public'
+		url = 'https://maven.aliyun.com/repository/public'
+	}
+	maven {
+		name = 'BMCLAPI Maven'
+		url = 'https://bmclapi2.bangbang93.com/maven/'
+	}
+	maven {
+		name = 'Fabric'
+		url = 'https://maven.fabricmc.net/'
+	}
+	if (file('.refs/1.21.1/local-maven').isDirectory()) {
+		maven {
+			name = 'Local 1.21.1 dependencies'
+			url = uri('.refs/1.21.1/local-maven')
+		}
+	}
 	maven {
 		name = 'Masa Maven'
 		url = 'https://masa.dy.fi/maven'
@@ -21,18 +39,22 @@ tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach 
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// Fabric API. Only the modules used by this project are needed.
+	// .refs is gitignored and only exists in the local development checkout;
+	// a normal checkout resolves the standard Maven artifacts.
+	if (file('.refs/1.21.1').isDirectory()) {
+		modImplementation files(
+			".refs/1.21.1/fabric-api-modules/fabric-api-base-0.116.17.jar",
+			".refs/1.21.1/fabric-api-modules/fabric-networking-api-v1-0.116.17.jar"
+		)
 
-	implementation "carpet:fabric-carpet:${project.carpet_version}"
-}
-
-tasks.register("resolveCwaDependencies") {
-	doLast {
-		configurations.compileClasspath.resolve()
-		configurations.runtimeClasspath.resolve()
+		modImplementation files(".refs/1.21.1/fabric-carpet-1.21-1.4.147+v240613.jar")
+	} else {
+		modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+		modImplementation "carpet:fabric-carpet:${project.carpet_version}"
 	}
 }
 

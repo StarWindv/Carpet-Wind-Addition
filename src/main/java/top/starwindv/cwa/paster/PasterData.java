@@ -8,22 +8,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.saveddata.SavedDataType;
-import org.jspecify.annotations.Nullable;
-import top.starwindv.cwa.CarpetWindAddition;
+import org.jetbrains.annotations.Nullable;
+import top.starwindv.cwa.util.SavedDataIO;
 
 public final class PasterData extends SavedData {
 	public static final Codec<PasterData> CODEC = Codec.unboundedMap(Codec.STRING, ItemStack.CODEC.listOf())
 			.xmap(PasterData::new, PasterData::entries);
 
-	public static final SavedDataType<PasterData> TYPE = new SavedDataType<>(
-			CarpetWindAddition.id("paster_materials"),
+	private static final String DATA_NAME = "cwa_paster_materials";
+	private static final SavedData.Factory<PasterData> FACTORY = new SavedData.Factory<>(
 			PasterData::new,
-			CODEC,
+			(tag, registries) -> SavedDataIO.load(CODEC, tag, registries, PasterData::new),
 			DataFixTypes.SAVED_DATA_COMMAND_STORAGE
 	);
 
@@ -44,11 +45,16 @@ public final class PasterData extends SavedData {
 	}
 
 	public static @Nullable PasterData get(MinecraftServer server) {
-		return server.overworld().getDataStorage().get(TYPE);
+		return server.overworld().getDataStorage().get(FACTORY, DATA_NAME);
 	}
 
 	public static PasterData getOrCreate(MinecraftServer server) {
-		return server.overworld().getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+	}
+
+	@Override
+	public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+		return SavedDataIO.save(CODEC, this, registries);
 	}
 
 	public Map<String, List<ItemStack>> entries() {

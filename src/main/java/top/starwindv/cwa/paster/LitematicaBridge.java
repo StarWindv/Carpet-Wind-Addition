@@ -19,7 +19,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import top.starwindv.cwa.CarpetWindAddition;
 
 public final class LitematicaBridge {
@@ -172,7 +172,7 @@ public final class LitematicaBridge {
 			if (name == null) {
 				name = "";
 			}
-			String dimension = actualLevel.dimension().identifier().toString();
+			String dimension = actualLevel.dimension().location().toString();
 			return new PlacementSnapshot(id, name, dimension, placement, List.copyOf(required), List.copyOf(bounds));
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to read the current Litematica placement", throwable);

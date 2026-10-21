@@ -2,6 +2,7 @@ package top.starwindv.cwa.paster;
 
 import java.util.Set;
 import net.minecraft.network.chat.Component;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class PasterProtection {
 	private PasterProtection() {
@@ -13,6 +14,6 @@ public final class PasterProtection {
 	}
 
 	public static void notifyUnloadBlocked() {
-		LitematicaBridge.displayMessage(Component.translatable("cwa.paster.protection.unload_blocked"));
+		LitematicaBridge.displayMessage(CwaMessages.translatable("cwa.paster.protection.unload_blocked"));
 	}
 }

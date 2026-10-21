@@ -77,7 +77,7 @@ public final class FurnaceCleaner {
 		if (slot == SLOT_INPUT) {
 			return !canSmelt(level, furnace, stack);
 		}
-		return level.fuelValues().burnDuration(stack) <= 0;
+		return !AbstractFurnaceBlockEntity.isFuel(stack);
 	}
 
 	private static boolean canSmelt(ServerLevel level, AbstractFurnaceBlockEntity furnace, ItemStack stack) {

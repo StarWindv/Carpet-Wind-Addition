@@ -6,22 +6,23 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.saveddata.SavedDataType;
-import org.jspecify.annotations.Nullable;
-import top.starwindv.cwa.CarpetWindAddition;
+import org.jetbrains.annotations.Nullable;
+import top.starwindv.cwa.util.SavedDataIO;
 
 public final class AllowData extends SavedData {
 	public static final Codec<AllowData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Codec.STRING.listOf().optionalFieldOf("commands", List.of()).forGetter(AllowData::commandList)
 	).apply(instance, AllowData::new));
 
-	public static final SavedDataType<AllowData> TYPE = new SavedDataType<>(
-			CarpetWindAddition.id("allowed_commands"),
+	private static final String DATA_NAME = "cwa_allowed_commands";
+	private static final SavedData.Factory<AllowData> FACTORY = new SavedData.Factory<>(
 			AllowData::new,
-			CODEC,
+			(tag, registries) -> SavedDataIO.load(CODEC, tag, registries, AllowData::new),
 			DataFixTypes.SAVED_DATA_COMMAND_STORAGE
 	);
 
@@ -36,11 +37,16 @@ public final class AllowData extends SavedData {
 	}
 
 	public static @Nullable AllowData get(MinecraftServer server) {
-		return server.getDataStorage().get(TYPE);
+		return server.overworld().getDataStorage().get(FACTORY, DATA_NAME);
 	}
 
 	public static AllowData getOrCreate(MinecraftServer server) {
-		return server.getDataStorage().computeIfAbsent(TYPE);
+		return server.overworld().getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+	}
+
+	@Override
+	public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+		return SavedDataIO.save(CODEC, this, registries);
 	}
 
 	public Set<String> commands() {

@@ -9,26 +9,27 @@ import java.util.List;
 import java.util.function.Predicate;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.rule.CwaSettings;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class StackCommand {
 	private StackCommand() {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		Predicate<CommandSourceStack> permission = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+		Predicate<CommandSourceStack> permission = source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS);
 		dispatcher.register(Commands.literal("stack")
 				.requires(source -> CwaSettings.StackAnything
 						&& (AllowManager.canUseHostCommand(source, "stack") || permission.test(source)))
-				.then(Commands.argument("item", IdentifierArgument.id())
+				.then(Commands.argument("item", ResourceLocationArgument.id())
 						.then(Commands.argument("count", IntegerArgumentType.integer(1))
 								.executes(StackCommand::setStackSize))));
 	}
@@ -42,23 +43,23 @@ public final class StackCommand {
 		}
 		if (count > max) {
 			int limit = max;
-			source.sendFailure(Component.translatable("cwa.stack.too_large", limit));
+			source.sendFailure(CwaMessages.translatable("cwa.stack.too_large", limit));
 			return 0;
 		}
 
-		Identifier parsedId = IdentifierArgument.getId(context, "item");
-		Identifier itemId = null;
+		ResourceLocation parsedId = ResourceLocationArgument.getId(context, "item");
+		ResourceLocation itemId = null;
 		if (BuiltInRegistries.ITEM.containsKey(parsedId)) {
 			itemId = parsedId;
 		} else {
-			List<Identifier> matches = new ArrayList<>();
-			for (Identifier registered : BuiltInRegistries.ITEM.keySet()) {
+			List<ResourceLocation> matches = new ArrayList<>();
+			for (ResourceLocation registered : BuiltInRegistries.ITEM.keySet()) {
 				if (registered.getPath().equals(parsedId.getPath())) {
 					matches.add(registered);
 				}
 			}
 			if (matches.size() > 1) {
-				source.sendFailure(Component.translatable(
+				source.sendFailure(CwaMessages.translatable(
 						"cwa.stack.ambiguous_item",
 						formatIds(matches)
 				));
@@ -70,17 +71,17 @@ public final class StackCommand {
 		}
 
 		if (itemId == null) {
-			source.sendFailure(Component.translatable("cwa.stack.unknown_item", parsedId.toString()));
+			source.sendFailure(CwaMessages.translatable("cwa.stack.unknown_item", parsedId.toString()));
 			return 0;
 		}
 
-		Item item = BuiltInRegistries.ITEM.getValue(itemId);
+		Item item = BuiltInRegistries.ITEM.get(itemId);
 		MinecraftServer server = source.getServer();
 		StackSizeData.getOrCreate(server).set(itemId.toString(), count);
 		StackSizeManager.set(item, count);
 		StackSizeManager.broadcast(server);
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.stack.set",
 				item.getName(new ItemStack(item)),
 				count
@@ -88,9 +89,9 @@ public final class StackCommand {
 		return 1;
 	}
 
-	private static String formatIds(List<Identifier> ids) {
+	private static String formatIds(List<ResourceLocation> ids) {
 		StringBuilder builder = new StringBuilder();
-		for (Identifier id : ids) {
+		for (ResourceLocation id : ids) {
 			if (builder.length() > 0) {
 				builder.append(", ");
 			}

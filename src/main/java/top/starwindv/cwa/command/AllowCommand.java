@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import top.starwindv.cwa.allow.AllowData;
 import top.starwindv.cwa.allow.AllowManager;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class AllowCommand {
 	private AllowCommand() {
@@ -39,12 +40,12 @@ public final class AllowCommand {
 		MinecraftServer server = source.getServer();
 
 		if (command.equals("allow")) {
-			source.sendFailure(Component.translatable("cwa.allow.self"));
+			source.sendFailure(CwaMessages.translatable("cwa.allow.self"));
 			return 0;
 		}
 
 		if (server.getCommands().getDispatcher().getRoot().getChild(command) == null) {
-			source.sendFailure(Component.translatable("cwa.allow.unknown", command));
+			source.sendFailure(CwaMessages.translatable("cwa.allow.unknown", command));
 			return 0;
 		}
 
@@ -52,7 +53,7 @@ public final class AllowCommand {
 		data.setAllowed(command, allowed);
 		AllowManager.refreshCommands(server);
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				allowed ? "cwa.allow.set" : "cwa.allow.unset",
 				command
 		), false);
@@ -64,11 +65,11 @@ public final class AllowCommand {
 		AllowData data = AllowData.get(source.getServer());
 
 		if (data == null || data.commands().isEmpty()) {
-			source.sendSuccess(() -> Component.translatable("cwa.allow.list.empty"), false);
+			source.sendSuccess(() -> CwaMessages.translatable("cwa.allow.list.empty"), false);
 			return 0;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.allow.list.header",
 				String.join(", ", data.commands())
 		), false);

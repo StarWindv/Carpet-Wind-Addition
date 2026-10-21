@@ -16,7 +16,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -24,18 +24,19 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.rule.CwaSettings;
 import top.starwindv.cwa.util.ItemReceiver;
 import top.starwindv.cwa.util.ItemTransfer;
+import top.starwindv.cwa.util.CwaMessages;
 
 public final class ContainerCleanerCommand {
 	private ContainerCleanerCommand() {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		Predicate<CommandSourceStack> permission = Commands.hasPermission(Commands.LEVEL_GAMEMASTERS);
+		Predicate<CommandSourceStack> permission = source -> source.hasPermission(Commands.LEVEL_GAMEMASTERS);
 		dispatcher.register(Commands.literal("cc")
 				.requires(source -> CwaSettings.ContainerCleaner
 						&& (AllowManager.canUseHostCommand(source, "cc") || permission.test(source)))
@@ -97,7 +98,7 @@ public final class ContainerCleanerCommand {
 
 		ContainerCleaner.ScanResult scan = ContainerCleaner.findContainers(level, start, end, target.block());
 		if (scan.matched() == 0) {
-			source.sendFailure(Component.translatable("cwa.container.none_container", target.blockName()));
+			source.sendFailure(CwaMessages.translatable("cwa.container.none_container", target.blockName()));
 			return 0;
 		}
 
@@ -111,33 +112,33 @@ public final class ContainerCleanerCommand {
 		String containerInput = StringArgumentType.getString(context, "container");
 		String ashInput = StringArgumentType.getString(context, "ash");
 
-		Identifier containerId = Identifier.tryParse(containerInput);
+		ResourceLocation containerId = ResourceLocation.tryParse(containerInput);
 		if (containerId == null) {
-			source.sendFailure(Component.translatable("cwa.container.invalid_id", containerInput));
+			source.sendFailure(CwaMessages.translatable("cwa.container.invalid_id", containerInput));
 			return null;
 		}
 		if (!BuiltInRegistries.BLOCK.containsKey(containerId)) {
-			source.sendFailure(Component.translatable("cwa.container.unknown_block", containerInput));
+			source.sendFailure(CwaMessages.translatable("cwa.container.unknown_block", containerInput));
 			return null;
 		}
 
-		Block block = BuiltInRegistries.BLOCK.getValue(containerId);
+		Block block = BuiltInRegistries.BLOCK.get(containerId);
 		if (!ContainerCleaner.isContainerBlock(block)) {
-			source.sendFailure(Component.translatable("cwa.container.not_container", block.getName()));
+			source.sendFailure(CwaMessages.translatable("cwa.container.not_container", block.getName()));
 			return null;
 		}
 
-		Identifier ashId = Identifier.tryParse(ashInput);
+		ResourceLocation ashId = ResourceLocation.tryParse(ashInput);
 		if (ashId == null) {
-			source.sendFailure(Component.translatable("cwa.container.invalid_id", ashInput));
+			source.sendFailure(CwaMessages.translatable("cwa.container.invalid_id", ashInput));
 			return null;
 		}
 		if (!BuiltInRegistries.ITEM.containsKey(ashId)) {
-			source.sendFailure(Component.translatable("cwa.container.unknown_item", ashInput));
+			source.sendFailure(CwaMessages.translatable("cwa.container.unknown_item", ashInput));
 			return null;
 		}
 
-		return new Target(block, BuiltInRegistries.ITEM.getValue(ashId));
+		return new Target(block, BuiltInRegistries.ITEM.get(ashId));
 	}
 
 	private static void sendResult(CommandSourceStack source, Target target, ContainerCleaner.Result result) {
@@ -145,7 +146,7 @@ public final class ContainerCleanerCommand {
 		Component itemName = target.itemName();
 
 		if (result.found() == 0) {
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.container.none_item",
 					blockName,
 					itemName
@@ -153,7 +154,7 @@ public final class ContainerCleanerCommand {
 			return;
 		}
 
-		source.sendSuccess(() -> Component.translatable(
+		source.sendSuccess(() -> CwaMessages.translatable(
 				"cwa.container.result",
 				result.containers(),
 				blockName,
@@ -163,7 +164,7 @@ public final class ContainerCleanerCommand {
 		), false);
 
 		if (result.leftover() > 0) {
-			source.sendSuccess(() -> Component.translatable(
+			source.sendSuccess(() -> CwaMessages.translatable(
 					"cwa.container.leftover",
 					result.leftover(),
 					itemName,

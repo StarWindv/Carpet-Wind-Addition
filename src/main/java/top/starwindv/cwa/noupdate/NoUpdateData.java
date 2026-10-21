@@ -6,22 +6,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.saveddata.SavedDataType;
-import org.jspecify.annotations.Nullable;
-import top.starwindv.cwa.CarpetWindAddition;
+import org.jetbrains.annotations.Nullable;
+import top.starwindv.cwa.util.SavedDataIO;
 
 public final class NoUpdateData extends SavedData {
 	public static final Codec<NoUpdateData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			NoUpdateRegion.CODEC.listOf().optionalFieldOf("regions", List.of()).forGetter(NoUpdateData::regions)
 	).apply(instance, NoUpdateData::new));
 
-	public static final SavedDataType<NoUpdateData> TYPE = new SavedDataType<>(
-			CarpetWindAddition.id("no_update_regions"),
+	private static final String DATA_NAME = "cwa_no_update_regions";
+	private static final SavedData.Factory<NoUpdateData> FACTORY = new SavedData.Factory<>(
 			NoUpdateData::new,
-			CODEC,
+			(tag, registries) -> SavedDataIO.load(CODEC, tag, registries, NoUpdateData::new),
 			DataFixTypes.SAVED_DATA_COMMAND_STORAGE
 	);
 
@@ -36,11 +37,16 @@ public final class NoUpdateData extends SavedData {
 	}
 
 	public static @Nullable NoUpdateData get(ServerLevel level) {
-		return level.getDataStorage().get(TYPE);
+		return level.getDataStorage().get(FACTORY, DATA_NAME);
 	}
 
 	public static NoUpdateData getOrCreate(ServerLevel level) {
-		return level.getDataStorage().computeIfAbsent(TYPE);
+		return level.getDataStorage().computeIfAbsent(FACTORY, DATA_NAME);
+	}
+
+	@Override
+	public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+		return SavedDataIO.save(CODEC, this, registries);
 	}
 
 	public List<NoUpdateRegion> regions() {

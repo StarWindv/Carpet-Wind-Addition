@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -35,7 +35,7 @@ public final class StackSizeManager {
 	public static void replace(Map<String, Integer> sizes) {
 		SIZES.clear();
 		sizes.forEach((id, size) -> {
-			Identifier itemId = Identifier.tryParse(id);
+			ResourceLocation itemId = ResourceLocation.tryParse(id);
 			if (itemId == null) {
 				return;
 			}
@@ -46,7 +46,7 @@ public final class StackSizeManager {
 	public static Map<String, Integer> snapshot() {
 		Map<String, Integer> snapshot = new LinkedHashMap<>();
 		SIZES.forEach((item, size) -> {
-			Identifier id = BuiltInRegistries.ITEM.getKey(item);
+			ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
 			if (id != null) {
 				snapshot.put(id.toString(), size);
 			}
