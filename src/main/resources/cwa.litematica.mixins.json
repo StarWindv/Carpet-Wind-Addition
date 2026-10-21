@@ -1,7 +1,7 @@
 {
 	"required": false,
 	"package": "top.starwindv.cwa.mixin.litematica",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_21",
 	"plugin": "top.starwindv.cwa.mixin.litematica.CwaLitematicaMixinPlugin",
 	"client": [
 		"SchematicHolderMixin"

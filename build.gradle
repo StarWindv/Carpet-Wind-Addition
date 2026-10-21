@@ -29,6 +29,13 @@ dependencies {
 	implementation "carpet:fabric-carpet:${project.carpet_version}"
 }
 
+tasks.register("resolveCwaDependencies") {
+	doLast {
+		configurations.compileClasspath.resolve()
+		configurations.runtimeClasspath.resolve()
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
@@ -39,7 +46,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
+	it.options.release = 21
 }
 
 java {
@@ -48,8 +55,8 @@ java {
 	// If you remove this line, sources will not be generated.
 	withSourcesJar()
 
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
 }
 
 jar {
