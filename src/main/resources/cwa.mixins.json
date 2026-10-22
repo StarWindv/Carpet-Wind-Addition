@@ -12,6 +12,7 @@
 		"ItemCraftingRemainderMixin",
 		"ItemInstanceMixin",
 		"ItemStackCodecLimitMixin",
+		"ItemStackTemplateCodecLimitMixin",
 		"ItemStackDurabilityMixin",
 		"MobEquipmentDropMixin",
 		"HotTNTMixin",
