@@ -127,6 +127,11 @@ public final class LitematicaBridge {
 				return null;
 			}
 
+			Object schematic = placementClass.getMethod("getSchematic").invoke(placement);
+			if (schematic == null) {
+				return null;
+			}
+
 			Object enabledValue = Enum.valueOf(
 					requiredEnabledClass.asSubclass(Enum.class),
 					"PLACEMENT_ENABLED"
@@ -145,16 +150,12 @@ public final class LitematicaBridge {
 				BlockPos first = (BlockPos) boxClass.getMethod("getPos1").invoke(box);
 				BlockPos second = (BlockPos) boxClass.getMethod("getPos2").invoke(box);
 				if (first != null && second != null) {
-					regions.add(String.valueOf(entry.getKey()));
-					bounds.add(new PasterBounds(first, second));
+					String region = String.valueOf(entry.getKey());
+					regions.add(region);
+					bounds.add(expandToContainerSize(schematic, region, first, second));
 				}
 			}
 			if (bounds.isEmpty()) {
-				return null;
-			}
-
-			Object schematic = placementClass.getMethod("getSchematic").invoke(placement);
-			if (schematic == null) {
 				return null;
 			}
 
@@ -188,6 +189,45 @@ public final class LitematicaBridge {
 			CarpetWindAddition.LOGGER.warn("Failed to read the current Litematica placement", throwable);
 			return null;
 		}
+	}
+
+	private static PasterBounds expandToContainerSize(
+			Object schematic,
+			String region,
+			BlockPos first,
+			BlockPos second
+	) {
+		int minX = Math.min(first.getX(), second.getX());
+		int minY = Math.min(first.getY(), second.getY());
+		int minZ = Math.min(first.getZ(), second.getZ());
+		int maxX = Math.max(first.getX(), second.getX());
+		int maxY = Math.max(first.getY(), second.getY());
+		int maxZ = Math.max(first.getZ(), second.getZ());
+
+		try {
+			Object container = schematicClass
+					.getMethod("getSubRegionContainer", String.class)
+					.invoke(schematic, region);
+			if (container != null) {
+				Vec3i size = (Vec3i) blockContainerClass.getMethod("getSize").invoke(container);
+				// Schematic regions can have a negative Size on an axis. Some
+				// Litematica versions then report a collapsed sub-region box
+				// while the paste task still uses the full block container.
+				maxX = Math.max(maxX, minX + Math.abs(size.getX()) - 1);
+				maxY = Math.max(maxY, minY + Math.abs(size.getY()) - 1);
+				maxZ = Math.max(maxZ, minZ + Math.abs(size.getZ()) - 1);
+			}
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.debug(
+					"Failed to expand the paster bounds from the schematic container",
+					throwable
+			);
+		}
+
+		return new PasterBounds(
+				new BlockPos(minX, minY, minZ),
+				new BlockPos(maxX, maxY, maxZ)
+		);
 	}
 
 	private static List<?> materialEntries(Object schematic, List<String> regions) throws ReflectiveOperationException {
