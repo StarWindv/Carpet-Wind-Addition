@@ -28,11 +28,17 @@ public final class AllowManager {
 		if (command.equals("allow")) {
 			return false;
 		}
+		MinecraftServer server = source.getServer();
+		if (server == null) {
+			// ClientboundCommandsPacket evaluates command requirements with a
+			// synthetic source that has no server attached.
+			return false;
+		}
 		if (!isHost(source) && !CwaSettings.AllowSharePermission) {
 			return false;
 		}
 
-		AllowData data = AllowData.get(source.getServer());
+		AllowData data = AllowData.get(server);
 		return data != null && data.isAllowed(command);
 	}
 

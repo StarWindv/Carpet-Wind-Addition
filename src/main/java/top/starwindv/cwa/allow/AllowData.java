@@ -37,7 +37,7 @@ public final class AllowData extends SavedData {
 	}
 
 	public static @Nullable AllowData get(MinecraftServer server) {
-		return server.overworld().getDataStorage().get(FACTORY, DATA_NAME);
+		return server == null ? null : server.overworld().getDataStorage().get(FACTORY, DATA_NAME);
 	}
 
 	public static AllowData getOrCreate(MinecraftServer server) {

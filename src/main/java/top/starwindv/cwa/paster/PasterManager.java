@@ -392,7 +392,10 @@ public final class PasterManager {
 			return false;
 		}
 
-		boolean remote = server.isDedicatedServer();
+		// A snapshot restored from server data has no live client-side
+		// placement object. That also covers LAN guests on an integrated
+		// server, whose snapshot must be pasted by their own client.
+		boolean remote = server.isDedicatedServer() || snapshot.placement() == null;
 		if (!remote && LitematicaBridge.hasPasteTask()) {
 			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.busy"));
 			return false;

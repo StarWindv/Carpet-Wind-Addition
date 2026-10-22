@@ -352,6 +352,11 @@ public final class LitematicaBridge {
 		if (!isAvailable()) {
 			return false;
 		}
+		if (placement == null) {
+			CarpetWindAddition.LOGGER.warn("Cannot start a local Litematica paste without a placement object");
+			failure.run();
+			return false;
+		}
 
 		try {
 			Object minecraft = client.minecraft();
