@@ -109,7 +109,7 @@ Usage:
 
 默认关闭.
 
-启用后, 主机可使用 `/paster` Command. 在专用服务器上, 服务器需要安装 CWA, 普通玩家即可使用 `/paster collect self`、`/paster collect list`、`/paster paste` 和 `/paster return self`; 只有从选区容器收集或返还材料的命令仍需要权限等级 2. 客户端需要安装 CWA、Litematica 和投影打印机. 粘贴由客户端通过 Litematica 交给 Servux 完成, 因此专用服务器建议安装 Servux; 单人游戏原有的粘贴路径不受影响.
+启用后, 主机可使用 `/paster` Command. 在专用服务器上, 服务器需要安装 CWA, 普通玩家即可使用 `/paster` 的全部子命令, 不需要 OP; 是否开启该规则由服务器管理员决定. 客户端需要安装 CWA、Litematica 和投影打印机. 粘贴由客户端通过 Litematica 交给 Servux 完成, 因此专用服务器建议安装 Servux; 单人游戏原有的粘贴路径不受影响.
 
 值得注意的是, 粘贴器自身不要求创造模式; 专用服务器上的 Servux 粘贴权限由 Servux 配置决定.
 
