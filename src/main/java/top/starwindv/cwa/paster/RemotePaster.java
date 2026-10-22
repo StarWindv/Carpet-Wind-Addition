@@ -86,6 +86,23 @@ public final class RemotePaster {
 				source.sendFailure(CwaMessages.translatable("cwa.paster.schematic_changed"));
 				return;
 			}
+
+			// The schematic file can stay identical while its placement is moved
+			// after collecting materials. The stored material list remains
+			// server-owned, but the current placement box has to come from the
+			// client that is about to run the paste task.
+			if (incoming.bounds().isEmpty()) {
+				source.sendFailure(CwaMessages.translatable("cwa.paster.paste.no_snapshot"));
+				return;
+			}
+			stored = new PasterSnapshotData.StoredSnapshot(
+					stored.name(),
+					incoming.dimension(),
+					stored.requiredMaterials(),
+					incoming.bounds(),
+					stored.fingerprint()
+			);
+			data.set(player.getUUID(), payload.placementId(), stored);
 		} else if (pending.action == PasterAction.COLLECT_SELF
 				|| pending.action == PasterAction.COLLECT_RANGE) {
 			data.set(player.getUUID(), payload.placementId(), incoming);
