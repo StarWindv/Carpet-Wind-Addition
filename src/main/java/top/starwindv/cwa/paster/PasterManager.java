@@ -473,6 +473,7 @@ public final class PasterManager {
 
 		String command = PasterCommandRules.normalize(payload.command());
 		if (!PasterCommandRules.isValid(command, session.bounds)) {
+			session.rejectedCommands++;
 			CarpetWindAddition.LOGGER.warn(
 					"Rejected remote paster command from {}: {}",
 					player.getScoreboardName(),
@@ -553,6 +554,14 @@ public final class PasterManager {
 	private static void finishPaste(MinecraftServer server, ActivePaste session, boolean success) {
 		if (ACTIVE_PASTES.get(session.playerId) != session) {
 			return;
+		}
+		if (success && session.rejectedCommands > 0) {
+			CarpetWindAddition.LOGGER.warn(
+					"Remote paster for {} reported success but the server rejected {} commands; not consuming materials",
+					session.playerId,
+					session.rejectedCommands
+			);
+			success = false;
 		}
 
 		for (NoUpdateManager.TemporaryRegion region : session.temporaryRegions) {
@@ -662,6 +671,7 @@ public final class PasterManager {
 		private final boolean remote;
 		private boolean seen;
 		private boolean feedbackDisabled;
+		private int rejectedCommands;
 		private int notRunningSince = -1;
 		private @Nullable Boolean completionResult;
 
