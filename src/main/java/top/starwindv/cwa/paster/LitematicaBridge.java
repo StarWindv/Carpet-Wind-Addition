@@ -203,6 +203,9 @@ public final class LitematicaBridge {
 		int maxX = Math.max(first.getX(), second.getX());
 		int maxY = Math.max(first.getY(), second.getY());
 		int maxZ = Math.max(first.getZ(), second.getZ());
+		int originalMaxX = maxX;
+		int originalMaxY = maxY;
+		int originalMaxZ = maxZ;
 
 		try {
 			Object container = schematicClass
@@ -221,6 +224,19 @@ public final class LitematicaBridge {
 			CarpetWindAddition.LOGGER.debug(
 					"Failed to expand the paster bounds from the schematic container",
 					throwable
+			);
+		}
+
+		if (maxX != originalMaxX || maxY != originalMaxY || maxZ != originalMaxZ) {
+			CarpetWindAddition.LOGGER.info(
+					"Expanded paster bound for region {}: {} {} {} -> {} {} {}",
+					region,
+					originalMaxX,
+					originalMaxY,
+					originalMaxZ,
+					maxX,
+					maxY,
+					maxZ
 			);
 		}
 
