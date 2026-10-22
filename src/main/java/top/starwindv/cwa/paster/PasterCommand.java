@@ -28,9 +28,11 @@ public final class PasterCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("paster")
-				.requires(source -> LitematicaBridge.isAvailable()
+				.requires(source -> (LitematicaBridge.isAvailable() || source.getServer().isDedicatedServer())
 						&& LitematicaSettings.LitematicaPaster
-						&& AllowManager.canUseHostCommand(source, "paster"))
+						&& (AllowManager.canUseHostCommand(source, "paster")
+						|| (source.getServer().isDedicatedServer()
+						&& Commands.LEVEL_GAMEMASTERS.check(source.permissions()))))
 				.then(Commands.literal("collect")
 						.then(Commands.literal("self")
 								.executes(PasterCommand::collectSelf))
@@ -54,6 +56,9 @@ public final class PasterCommand {
 	private static int collectSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.COLLECT_SELF, 0, null, null);
+		}
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;
@@ -67,13 +72,15 @@ public final class PasterCommand {
 	private static int collectRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
+		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
+		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.COLLECT_RANGE, 0, start, end);
+		}
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;
 		}
-
-		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
-		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
 		PasterManager.CollectResult result = PasterManager.collectRange(
 				source.getLevel(),
 				player,
@@ -95,13 +102,17 @@ public final class PasterCommand {
 
 	private static int listMaterials(CommandContext<CommandSourceStack> context, int requestedPage) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.LIST, requestedPage, null, null);
+		}
+		ServerPlayer player = source.getPlayerOrException();
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;
 		}
 
 		PasterData data = PasterData.get(source.getServer());
-		List<ItemStack> stored = data == null ? List.of() : data.get(snapshot.id());
+		List<ItemStack> stored = data == null ? List.of() : data.get(player.getUUID(), snapshot.id());
 		List<MaterialLine> lines = materialLines(snapshot, stored);
 		if (lines.isEmpty()) {
 			source.sendSuccess(() -> Component.translatable("cwa.paster.list.empty"), false);
@@ -251,6 +262,9 @@ public final class PasterCommand {
 	private static int paste(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.PASTE, 0, null, null);
+		}
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
 			return 0;
@@ -262,7 +276,10 @@ public final class PasterCommand {
 	private static int returnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
-		if (PasterManager.isPasteRunning()) {
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.RETURN_SELF, 0, null, null);
+		}
+		if (PasterManager.isPasteRunning(player.getUUID())) {
 			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
 			return 0;
 		}
@@ -279,7 +296,13 @@ public final class PasterCommand {
 
 	private static int returnRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
-		if (PasterManager.isPasteRunning()) {
+		ServerPlayer player = source.getPlayerOrException();
+		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
+		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
+		if (source.getServer().isDedicatedServer()) {
+			return RemotePaster.request(source, PasterAction.RETURN_RANGE, 0, start, end);
+		}
+		if (PasterManager.isPasteRunning(player.getUUID())) {
 			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
 			return 0;
 		}
@@ -289,10 +312,9 @@ public final class PasterCommand {
 			return 0;
 		}
 
-		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
-		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
 		PasterManager.ReturnResult result = PasterManager.returnRange(
 				source.getLevel(),
+				player.getUUID(),
 				snapshot,
 				start,
 				end
@@ -301,7 +323,79 @@ public final class PasterCommand {
 		return result.returned() > 0 ? 1 : 0;
 	}
 
-	private static void sendCollectResult(CommandSourceStack source, PasterManager.CollectResult result) {
+	static void sendMaterialList(
+			CommandSourceStack source,
+			ServerPlayer player,
+			PlacementSnapshot snapshot,
+			int requestedPage
+	) {
+		PasterData data = PasterData.get(source.getServer());
+		List<ItemStack> stored = data == null ? List.of() : data.get(player.getUUID(), snapshot.id());
+		List<MaterialLine> lines = materialLines(snapshot, stored);
+		if (lines.isEmpty()) {
+			source.sendSuccess(() -> Component.translatable("cwa.paster.list.empty"), false);
+			return;
+		}
+
+		int pages = (lines.size() + MATERIALS_PER_PAGE - 1) / MATERIALS_PER_PAGE;
+		int page = Math.min(Math.max(1, requestedPage), pages);
+		int requiredTotal = 0;
+		int missingTotal = 0;
+		for (MaterialLine line : lines) {
+			if (!line.extra()) {
+				requiredTotal += line.total();
+				missingTotal += line.missing();
+			}
+		}
+
+		MutableComponent table = Component.empty();
+		table.append(Component.translatable("cwa.paster.list.header", snapshot.name()).withStyle(ChatFormatting.GOLD));
+		table.append(Component.literal("\n"));
+		table.append(Component.translatable(
+				"cwa.paster.list.summary",
+				requiredTotal,
+				PasterMaterials.totalCount(stored),
+				missingTotal
+		).withStyle(ChatFormatting.YELLOW));
+		table.append(Component.literal("\n"));
+		table.append(Component.translatable("cwa.paster.list.page", page, pages).withStyle(ChatFormatting.GRAY));
+		table.append(Component.literal("\n"));
+		table.append(Component.translatable(
+				"cwa.paster.list.columns",
+				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.required")),
+				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.stored")),
+				Component.literal(" ").append(Component.translatable("cwa.paster.list.column.missing")),
+				Component.translatable("cwa.paster.list.column.item")
+		).withStyle(ChatFormatting.AQUA));
+		table.append(Component.literal("\n"));
+
+		int from = (page - 1) * MATERIALS_PER_PAGE;
+		int to = Math.min(from + MATERIALS_PER_PAGE, lines.size());
+		for (int index = from; index < to; index++) {
+			MaterialLine line = lines.get(index);
+			ChatFormatting rowColor = (index - from) % 2 == 0 ? ChatFormatting.GRAY : ChatFormatting.WHITE;
+			Component name = line.extra()
+					? Component.literal("* ").append(line.sample().getHoverName())
+					: line.sample().getHoverName();
+			Component missing = line.extra()
+					? Component.literal(padLeft("-", COUNT_WIDTH)).withStyle(ChatFormatting.DARK_GRAY)
+					: Component.literal(padLeft(Integer.toString(line.missing()), COUNT_WIDTH))
+							.withStyle(line.missing() > 0 ? ChatFormatting.RED : ChatFormatting.GREEN);
+			table.append(Component.translatable(
+					"cwa.paster.list.row",
+					line.extra() ? padLeft("-", COUNT_WIDTH) : padLeft(Integer.toString(line.total()), COUNT_WIDTH),
+					padLeft(Integer.toString(line.stored()), COUNT_WIDTH),
+					missing,
+					name
+			).withStyle(rowColor));
+			if (index + 1 < to) {
+				table.append(Component.literal("\n"));
+			}
+		}
+		source.sendSuccess(() -> table, false);
+	}
+
+	static void sendCollectResult(CommandSourceStack source, PasterManager.CollectResult result) {
 		if (result.materials().isEmpty()) {
 			source.sendSuccess(() -> Component.translatable(
 					"cwa.paster.collect.none",
@@ -345,7 +439,7 @@ public final class PasterCommand {
 		source.sendSuccess(() -> table, false);
 	}
 
-	private static void sendReturnMessage(CommandSourceStack source, PasterManager.ReturnResult result) {
+	static void sendReturnMessage(CommandSourceStack source, PasterManager.ReturnResult result) {
 		if (result.returned() <= 0 && result.remaining() <= 0) {
 			source.sendSuccess(() -> Component.translatable("cwa.paster.return.none"), false);
 			return;

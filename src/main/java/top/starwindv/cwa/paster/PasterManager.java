@@ -5,8 +5,10 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -24,7 +26,7 @@ import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.util.ItemTransfer;
 
 public final class PasterManager {
-	private static @Nullable ActivePaste activePaste;
+	private static final Map<UUID, ActivePaste> ACTIVE_PASTES = new ConcurrentHashMap<>();
 	private static volatile Set<String> protectedPlacementIds = Set.of();
 
 	private PasterManager() {
@@ -35,7 +37,11 @@ public final class PasterManager {
 	}
 
 	public static boolean isPasteRunning() {
-		return activePaste != null;
+		return !ACTIVE_PASTES.isEmpty();
+	}
+
+	public static boolean isPasteRunning(UUID playerId) {
+		return ACTIVE_PASTES.containsKey(playerId);
 	}
 
 	private static void refreshProtectedPlacements(MinecraftServer server) {
@@ -45,7 +51,7 @@ public final class PasterManager {
 
 	public static CollectResult collectSelf(ServerPlayer player, PlacementSnapshot snapshot) {
 		PasterData data = PasterData.getOrCreate(player.level().getServer());
-		List<ItemStack> stored = data.get(snapshot.id());
+		List<ItemStack> stored = data.get(player.getUUID(), snapshot.id());
 		int[] remaining = requiredRemaining(snapshot.requiredMaterials(), stored);
 		int[] before = remaining.clone();
 		List<ItemStack> collected = new ArrayList<>();
@@ -60,7 +66,7 @@ public final class PasterManager {
 			for (ItemStack stack : collected) {
 				PasterMaterials.add(stored, stack);
 			}
-			data.set(snapshot.id(), stored);
+			data.set(player.getUUID(), snapshot.id(), stored);
 			player.inventoryMenu.broadcastChanges();
 		}
 		MinecraftServer server = player.level().getServer();
@@ -83,7 +89,7 @@ public final class PasterManager {
 			BlockPos second
 	) {
 		PasterData data = PasterData.getOrCreate(level.getServer());
-		List<ItemStack> stored = data.get(snapshot.id());
+		List<ItemStack> stored = data.get(player.getUUID(), snapshot.id());
 		int[] remaining = requiredRemaining(snapshot.requiredMaterials(), stored);
 		int[] before = remaining.clone();
 		List<ItemStack> collected = new ArrayList<>();
@@ -110,7 +116,7 @@ public final class PasterManager {
 			for (ItemStack stack : collected) {
 				PasterMaterials.add(stored, stack);
 			}
-			data.set(snapshot.id(), stored);
+			data.set(player.getUUID(), snapshot.id(), stored);
 		}
 		refreshProtectedPlacements(level.getServer());
 
@@ -289,7 +295,7 @@ public final class PasterManager {
 
 	public static ReturnResult returnSelf(ServerPlayer player, PlacementSnapshot snapshot) {
 		PasterData data = PasterData.getOrCreate(player.level().getServer());
-		List<ItemStack> stored = data.get(snapshot.id());
+		List<ItemStack> stored = data.get(player.getUUID(), snapshot.id());
 		int before = total(stored);
 		List<ItemStack> remaining = new ArrayList<>();
 
@@ -301,7 +307,7 @@ public final class PasterManager {
 			}
 		}
 
-		data.set(snapshot.id(), remaining);
+		data.set(player.getUUID(), snapshot.id(), remaining);
 		player.inventoryMenu.broadcastChanges();
 		MinecraftServer server = player.level().getServer();
 		if (server != null) {
@@ -312,12 +318,13 @@ public final class PasterManager {
 
 	public static ReturnResult returnRange(
 			ServerLevel level,
+			UUID playerId,
 			PlacementSnapshot snapshot,
 			BlockPos first,
 			BlockPos second
 	) {
 		PasterData data = PasterData.getOrCreate(level.getServer());
-		List<ItemStack> stored = data.get(snapshot.id());
+		List<ItemStack> stored = data.get(playerId, snapshot.id());
 		int before = total(stored);
 		List<ItemStack> remaining = new ArrayList<>();
 		List<ItemTransfer.ContainerEntry> entries = stored.isEmpty()
@@ -343,7 +350,7 @@ public final class PasterManager {
 			}
 		}
 
-		data.set(snapshot.id(), remaining);
+		data.set(playerId, snapshot.id(), remaining);
 		refreshProtectedPlacements(level.getServer());
 		return new ReturnResult(before - total(remaining), total(remaining), List.copyOf(filled));
 	}
@@ -367,13 +374,13 @@ public final class PasterManager {
 
 	public static boolean startPaste(CommandSourceStack source, ServerPlayer player, PlacementSnapshot snapshot) {
 		MinecraftServer server = source.getServer();
-		if (activePaste != null) {
+		if (ACTIVE_PASTES.containsKey(player.getUUID())) {
 			source.sendFailure(Component.translatable("cwa.paster.paste.busy"));
 			return false;
 		}
 
 		PasterData data = PasterData.getOrCreate(server);
-		List<PasterMaterial> missing = missingMaterials(snapshot, data.get(snapshot.id()));
+		List<PasterMaterial> missing = missingMaterials(snapshot, data.get(player.getUUID(), snapshot.id()));
 		if (!missing.isEmpty()) {
 			PasterMaterial first = missing.get(0);
 			source.sendFailure(Component.translatable(
@@ -384,7 +391,8 @@ public final class PasterManager {
 			return false;
 		}
 
-		if (LitematicaBridge.hasPasteTask()) {
+		boolean remote = server.isDedicatedServer();
+		if (!remote && LitematicaBridge.hasPasteTask()) {
 			source.sendFailure(Component.translatable("cwa.paster.paste.busy"));
 			return false;
 		}
@@ -402,22 +410,33 @@ public final class PasterManager {
 				snapshot.requiredMaterials(),
 				level,
 				temporaryRegions,
-				server.getTickCount()
+				server.getTickCount(),
+				remote
 		);
-		activePaste = session;
+		ACTIVE_PASTES.put(player.getUUID(), session);
 
-		Runnable failure = () -> server.execute(() -> failPaste(server, session));
-		if (!LitematicaBridge.startPaste(
-				snapshot.placement(),
-				success -> server.execute(() -> {
-					session.completionResult = success;
-					finishPaste(server, session, success);
-				}),
-				failure
-		)) {
-			failPaste(server, session);
-			source.sendFailure(Component.translatable("cwa.paster.paste.failed"));
-			return false;
+		if (remote) {
+			if (snapshot.fingerprint() == null
+					|| snapshot.fingerprint().isEmpty()
+					|| !PasterNetworking.sendStartPaste(player, snapshot.id(), snapshot.fingerprint())) {
+				failPaste(server, session);
+				source.sendFailure(Component.translatable("cwa.paster.paste.failed"));
+				return false;
+			}
+		} else {
+			Runnable failure = () -> server.execute(() -> failPaste(server, session));
+			if (!LitematicaBridge.startPaste(
+					snapshot.placement(),
+					success -> server.execute(() -> {
+						session.completionResult = success;
+						finishPaste(server, session, success);
+					}),
+					failure
+			)) {
+				failPaste(server, session);
+				source.sendFailure(Component.translatable("cwa.paster.paste.failed"));
+				return false;
+			}
 		}
 
 		source.sendSuccess(() -> Component.translatable(
@@ -427,30 +446,48 @@ public final class PasterManager {
 		return true;
 	}
 
-	public static void tick(MinecraftServer server) {
-		ActivePaste session = activePaste;
-		if (session == null || session.server != server) {
+	public static void completeRemotePaste(ServerPlayer player, UUID placementId, boolean success) {
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session == null
+				|| !session.remote
+				|| !session.placementId.equals(placementId)) {
 			return;
 		}
+		finishPaste(player.level().getServer(), session, success);
+	}
 
-		boolean hasTask = LitematicaBridge.hasPasteTask();
-		if (hasTask) {
-			session.seen = true;
-			session.notRunningSince = -1;
-		}
-
-		if (session.seen && !hasTask) {
-			if (session.completionResult != null) {
-				finishPaste(server, session, session.completionResult);
-			} else {
-				if (session.notRunningSince < 0) {
-					session.notRunningSince = server.getTickCount();
-				} else if (server.getTickCount() - session.notRunningSince > 60) {
-					finishPaste(server, session, true);
-				}
+	public static void tick(MinecraftServer server) {
+		for (ActivePaste session : List.copyOf(ACTIVE_PASTES.values())) {
+			if (session.server != server) {
+				continue;
 			}
-		} else if (!session.seen && server.getTickCount() - session.startTick > 40) {
-			finishPaste(server, session, false);
+
+			if (session.remote) {
+				if (server.getTickCount() - session.startTick > 20 * 60 * 30) {
+					finishPaste(server, session, false);
+				}
+				continue;
+			}
+
+			boolean hasTask = LitematicaBridge.hasPasteTask();
+			if (hasTask) {
+				session.seen = true;
+				session.notRunningSince = -1;
+			}
+
+			if (session.seen && !hasTask) {
+				if (session.completionResult != null) {
+					finishPaste(server, session, session.completionResult);
+				} else {
+					if (session.notRunningSince < 0) {
+						session.notRunningSince = server.getTickCount();
+					} else if (server.getTickCount() - session.notRunningSince > 60) {
+						finishPaste(server, session, true);
+					}
+				}
+			} else if (!session.seen && server.getTickCount() - session.startTick > 40) {
+				finishPaste(server, session, false);
+			}
 		}
 	}
 
@@ -459,17 +496,17 @@ public final class PasterManager {
 	}
 
 	private static void finishPaste(MinecraftServer server, ActivePaste session, boolean success) {
-		if (activePaste != session) {
+		if (ACTIVE_PASTES.get(session.playerId) != session) {
 			return;
 		}
 
 		for (NoUpdateManager.TemporaryRegion region : session.temporaryRegions) {
 			NoUpdateManager.endTemporary(session.level, region);
 		}
-		activePaste = null;
+		ACTIVE_PASTES.remove(session.playerId);
 
 		if (success) {
-			consumePastedMaterials(server, session.placementId, session.consumedMaterials);
+			consumePastedMaterials(server, session.playerId, session.placementId, session.consumedMaterials);
 		}
 
 		ServerPlayer player = server.getPlayerList().getPlayer(session.playerId);
@@ -482,6 +519,7 @@ public final class PasterManager {
 
 	private static void consumePastedMaterials(
 			MinecraftServer server,
+			UUID playerId,
 			UUID placementId,
 			List<PasterMaterial> materials
 	) {
@@ -490,11 +528,11 @@ public final class PasterManager {
 			return;
 		}
 
-		List<ItemStack> stored = data.get(placementId);
+		List<ItemStack> stored = data.get(playerId, placementId);
 		for (PasterMaterial material : materials) {
 			PasterMaterials.take(stored, material.sample(), material.count());
 		}
-		data.set(placementId, stored);
+		data.set(playerId, placementId, stored);
 		refreshProtectedPlacements(server);
 	}
 
@@ -503,13 +541,15 @@ public final class PasterManager {
 	}
 
 	public static void onServerClosed(MinecraftServer server) {
-		ActivePaste session = activePaste;
-		if (session != null && session.server == server) {
+		for (ActivePaste session : List.copyOf(ACTIVE_PASTES.values())) {
+			if (session.server != server) {
+				continue;
+			}
 			for (NoUpdateManager.TemporaryRegion region : session.temporaryRegions) {
 				NoUpdateManager.endTemporary(session.level, region);
 			}
-			activePaste = null;
 		}
+		ACTIVE_PASTES.clear();
 		protectedPlacementIds = Set.of();
 	}
 
@@ -551,6 +591,7 @@ public final class PasterManager {
 		private final ServerLevel level;
 		private final List<NoUpdateManager.TemporaryRegion> temporaryRegions;
 		private final int startTick;
+		private final boolean remote;
 		private boolean seen;
 		private int notRunningSince = -1;
 		private @Nullable Boolean completionResult;
@@ -562,7 +603,8 @@ public final class PasterManager {
 				List<PasterMaterial> consumedMaterials,
 				ServerLevel level,
 				List<NoUpdateManager.TemporaryRegion> temporaryRegions,
-				int startTick
+				int startTick,
+				boolean remote
 		) {
 			this.server = server;
 			this.playerId = playerId;
@@ -571,6 +613,7 @@ public final class PasterManager {
 			this.level = level;
 			this.temporaryRegions = temporaryRegions;
 			this.startTick = startTick;
+			this.remote = remote;
 		}
 	}
 

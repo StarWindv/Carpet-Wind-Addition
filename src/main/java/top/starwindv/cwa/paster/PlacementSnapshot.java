@@ -10,6 +10,7 @@ public record PlacementSnapshot(
 		String dimension,
 		Object placement,
 		List<PasterMaterial> requiredMaterials,
-		List<PasterBounds> bounds
+		List<PasterBounds> bounds,
+		String fingerprint
 ) {
 }
