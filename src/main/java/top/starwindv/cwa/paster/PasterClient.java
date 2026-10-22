@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public final class PasterClient {
 	private static volatile UUID activeCommandPaste;
+	private static volatile Object activeCommandTask;
 
 	private PasterClient() {
 	}
@@ -70,16 +71,23 @@ public final class PasterClient {
 	 * command. The command is forwarded through CWA so the server can authorize
 	 * only the command types produced by the paste task.
 	 */
-	public static boolean interceptCommand(String command) {
+	public static boolean interceptCommand(Object task, String command) {
 		UUID placementId = activeCommandPaste;
-		if (placementId == null || !PasterCommandRules.canRoute(command)) {
+		if (placementId == null
+				|| task != activeCommandTask
+				|| !PasterCommandRules.canRoute(command)) {
 			return false;
 		}
 		return PasterNetworking.sendCommand(placementId, command);
 	}
 
+	public static void setActiveCommandTask(Object task) {
+		activeCommandTask = task;
+	}
+
 	public static void reset() {
 		activeCommandPaste = null;
+		activeCommandTask = null;
 	}
 
 	private static void finishCommandPaste(UUID placementId, boolean success) {
@@ -87,6 +95,7 @@ public final class PasterClient {
 			return;
 		}
 		activeCommandPaste = null;
+		activeCommandTask = null;
 		PasterNetworking.sendSnapshotResult(placementId, success);
 	}
 }

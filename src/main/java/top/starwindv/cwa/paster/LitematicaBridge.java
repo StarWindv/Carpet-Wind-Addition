@@ -372,6 +372,7 @@ public final class LitematicaBridge {
 					Object task = commandPasteTaskClass
 							.getConstructor(Collection.class, layerRangeClass, boolean.class)
 							.newInstance(List.of(selected), layerRange, true);
+					PasterClient.setActiveCommandTask(task);
 					task.getClass()
 							.getMethod("setCompletionListener", completionListenerClass)
 							.invoke(task, completionListener(completion));
