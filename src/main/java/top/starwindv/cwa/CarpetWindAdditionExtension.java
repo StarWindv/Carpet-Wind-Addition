@@ -5,6 +5,8 @@ import carpet.CarpetServer;
 import carpet.utils.Translations;
 import com.mojang.brigadier.CommandDispatcher;
 import java.util.Map;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
@@ -53,7 +55,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 			CarpetServer.settingsManager.parseSettingsClass(CwaSettings.class);
 		}
 
-		if (LitematicaBridge.isAvailable()
+		if ((LitematicaBridge.isAvailable() || FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER)
 				&& CarpetServer.settingsManager.getCarpetRule(LitematicaSettings.LITEMATICA_PASTER) == null) {
 			CarpetServer.settingsManager.parseSettingsClass(LitematicaSettings.class);
 		}
@@ -112,7 +114,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 		FurnaceCommand.register(dispatcher);
 		ContainerCleanerCommand.register(dispatcher);
 		StackCommand.register(dispatcher);
-		if (LitematicaBridge.isAvailable()) {
+		if (LitematicaBridge.isAvailable() || FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER) {
 			PasterCommand.register(dispatcher);
 		}
 	}

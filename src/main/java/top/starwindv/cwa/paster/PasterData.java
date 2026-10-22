@@ -63,18 +63,27 @@ public final class PasterData extends SavedData {
 		return Collections.unmodifiableMap(copy);
 	}
 
-	public List<ItemStack> get(UUID placementId) {
-		return copyStacks(entries.get(placementId.toString()));
+	public List<ItemStack> get(UUID playerId, UUID placementId) {
+		List<ItemStack> stored = entries.get(key(playerId, placementId));
+		if (stored == null) {
+			// Older builds stored only the placement UUID. Keep those worlds readable;
+			// the next set() migrates the entry to the player-scoped key.
+			stored = entries.get(placementId.toString());
+		}
+		return copyStacks(stored);
 	}
 
-	public void set(UUID placementId, List<ItemStack> stacks) {
+	public void set(UUID playerId, UUID placementId, List<ItemStack> stacks) {
+		String key = key(playerId, placementId);
 		List<ItemStack> copied = copyStacks(stacks);
+		boolean changed = entries.remove(placementId.toString()) != null;
 		if (copied.isEmpty()) {
-			if (entries.remove(placementId.toString()) != null) {
-				setDirty();
-			}
+			changed |= entries.remove(key) != null;
 		} else {
-			entries.put(placementId.toString(), copied);
+			entries.put(key, copied);
+			changed = true;
+		}
+		if (changed) {
 			setDirty();
 		}
 	}
@@ -84,7 +93,20 @@ public final class PasterData extends SavedData {
 	}
 
 	public Set<String> placementIds() {
-		return Set.copyOf(entries.keySet());
+		Set<String> ids = new java.util.HashSet<>();
+		for (String key : entries.keySet()) {
+			ids.add(placementIdFromKey(key));
+		}
+		return Set.copyOf(ids);
+	}
+
+	private static String key(UUID playerId, UUID placementId) {
+		return playerId + "/" + placementId;
+	}
+
+	private static String placementIdFromKey(String key) {
+		int separator = key.lastIndexOf('/');
+		return separator >= 0 ? key.substring(separator + 1) : key;
 	}
 
 	private static List<ItemStack> copyStacks(@Nullable List<ItemStack> stacks) {
