@@ -3,6 +3,7 @@ package top.starwindv.cwa.allow;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.rule.CwaSettings;
 
 public final class AllowManager {
@@ -50,7 +51,15 @@ public final class AllowManager {
 
 	public static void refreshCommands(MinecraftServer server) {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			server.getCommands().sendCommands(player);
+			try {
+				server.getCommands().sendCommands(player);
+			} catch (Throwable throwable) {
+				CarpetWindAddition.LOGGER.warn(
+						"Failed to refresh command permissions for {}",
+						player.getScoreboardName(),
+						throwable
+				);
+			}
 		}
 	}
 }

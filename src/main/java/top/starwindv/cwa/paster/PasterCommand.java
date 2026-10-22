@@ -16,6 +16,7 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -82,10 +83,26 @@ public final class PasterCommand {
 				: FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER;
 	}
 
+	private static boolean useRemote(CommandSourceStack source) {
+		MinecraftServer server = source.getServer();
+		if (server == null) {
+			return FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER;
+		}
+		if (server.isDedicatedServer()) {
+			return true;
+		}
+
+		// An integrated server is local only for its host. A LAN guest has
+		// its own Litematica selection, so its snapshot must come from its
+		// client just like on a dedicated server.
+		ServerPlayer player = source.getPlayer();
+		return player != null && !server.isSingleplayerOwner(player.getGameProfile());
+	}
+
 	private static int collectSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.COLLECT_SELF, 0, null, null);
 		}
 		PlacementSnapshot snapshot = snapshot(source);
@@ -103,7 +120,7 @@ public final class PasterCommand {
 		ServerPlayer player = source.getPlayerOrException();
 		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
 		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.COLLECT_RANGE, 0, start, end);
 		}
 		PlacementSnapshot snapshot = snapshot(source);
@@ -131,7 +148,7 @@ public final class PasterCommand {
 
 	private static int listMaterials(CommandContext<CommandSourceStack> context, int requestedPage) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.LIST, requestedPage, null, null);
 		}
 		ServerPlayer player = source.getPlayerOrException();
@@ -291,7 +308,7 @@ public final class PasterCommand {
 	private static int paste(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.PASTE, 0, null, null);
 		}
 		PlacementSnapshot snapshot = snapshot(source);
@@ -305,7 +322,7 @@ public final class PasterCommand {
 	private static int returnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.RETURN_SELF, 0, null, null);
 		}
 		if (PasterManager.isPasteRunning(player.getUUID())) {
@@ -328,7 +345,7 @@ public final class PasterCommand {
 		ServerPlayer player = source.getPlayerOrException();
 		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
 		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
-		if (source.getServer().isDedicatedServer()) {
+		if (useRemote(source)) {
 			return RemotePaster.request(source, PasterAction.RETURN_RANGE, 0, start, end);
 		}
 		if (PasterManager.isPasteRunning(player.getUUID())) {
