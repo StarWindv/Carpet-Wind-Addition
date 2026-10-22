@@ -23,7 +23,7 @@ public abstract class TaskProcessChunkMultiPhaseMixin {
 
 	@Inject(method = "sendCommand(Ljava/lang/String;)V", at = @At("HEAD"), cancellable = true)
 	private void cwa$routePasterCommand(String command, CallbackInfo ci) {
-		if (PasterClient.interceptCommand(command)) {
+		if (PasterClient.interceptCommand(this, command)) {
 			this.sentCommandsThisTick++;
 			ci.cancel();
 		}
