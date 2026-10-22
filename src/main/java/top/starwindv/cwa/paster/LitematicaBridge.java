@@ -18,7 +18,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -39,11 +38,9 @@ public final class LitematicaBridge {
 	private static final String TASK_INTERFACE = "fi.dy.masa.litematica.scheduler.ITask";
 	private static final String COMPLETION_LISTENER = "fi.dy.masa.malilib.interfaces.ICompletionListener";
 	private static final String PASTE_TASK = "fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkDirect";
+	private static final String COMMAND_PASTE_TASK = "fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkCommand";
 	private static final String LAYER_RANGE = "fi.dy.masa.malilib.util.LayerRange";
 	private static final String DATA_MANAGER = "fi.dy.masa.litematica.data.DataManager";
-	private static final String SERVUX_HANDLER = "fi.dy.masa.litematica.network.ServuxLitematicaHandler";
-	private static final String SERVUX_PACKET = "fi.dy.masa.litematica.network.ServuxLitematicaPacket";
-	private static final String CLIENT_PAYLOAD_DATA = "fi.dy.masa.malilib.network.IClientPayloadData";
 
 	private static boolean initialized;
 	private static boolean available;
@@ -61,6 +58,7 @@ public final class LitematicaBridge {
 	private static Class<?> taskInterfaceClass;
 	private static Class<?> completionListenerClass;
 	private static Class<?> pasteTaskClass;
+	private static Class<?> commandPasteTaskClass;
 	private static Class<?> layerRangeClass;
 
 	private LitematicaBridge() {
@@ -96,6 +94,7 @@ public final class LitematicaBridge {
 			taskInterfaceClass = Class.forName(TASK_INTERFACE);
 			completionListenerClass = Class.forName(COMPLETION_LISTENER);
 			pasteTaskClass = Class.forName(PASTE_TASK);
+			commandPasteTaskClass = Class.forName(COMMAND_PASTE_TASK);
 			layerRangeClass = Class.forName(LAYER_RANGE);
 			available = true;
 		} catch (Throwable throwable) {
@@ -273,13 +272,32 @@ public final class LitematicaBridge {
 		}
 	}
 
-	private static boolean hasServuxServer() throws ReflectiveOperationException {
-		return (Boolean) Class.forName(DATA_MANAGER)
-				.getMethod("hasServuxServer")
-				.invoke(null);
+	private static Object completionListener(Consumer<Boolean> completion) {
+		return Proxy.newProxyInstance(
+				completionListenerClass.getClassLoader(),
+				new Class<?>[]{completionListenerClass},
+				(proxy, method, args) -> {
+					switch (method.getName()) {
+						case "onTaskCompleted" -> completion.accept(true);
+						case "onTaskAborted" -> completion.accept(false);
+						case "toString" -> {
+							return "cwa-paster-completion-listener";
+						}
+						case "hashCode" -> {
+							return System.identityHashCode(proxy);
+						}
+						case "equals" -> {
+							return proxy == args[0];
+						}
+						default -> {
+						}
+					}
+					return null;
+				}
+		);
 	}
 
-	public static boolean startServuxPaste(UUID placementId, String fingerprint, Consumer<Boolean> completion) {
+	public static boolean startCommandPaste(UUID placementId, String fingerprint, Consumer<Boolean> completion) {
 		if (!isAvailable()) {
 			return false;
 		}
@@ -309,35 +327,25 @@ public final class LitematicaBridge {
 						return;
 					}
 
-					boolean hasServux = hasServuxServer();
-					if (!hasServux) {
-						CarpetWindAddition.LOGGER.warn("Cannot paste remotely because the server did not advertise Servux");
-						completion.accept(false);
-						return;
-					}
-
-					Object data = placementClass.getMethod("toNbt", boolean.class).invoke(selected, true);
-					data.getClass()
-							.getMethod("putString", String.class, String.class)
-							.invoke(data, "Task", "LitematicaPaste");
-					Object packet = Class.forName(SERVUX_PACKET)
-							.getMethod("ResponseC2SStart", CompoundTag.class)
-							.invoke(null, data);
-					Object handler = Class.forName(SERVUX_HANDLER)
-							.getMethod("getInstance")
-							.invoke(null);
-					handler.getClass()
-							.getMethod("encodeClientData", Class.forName(CLIENT_PAYLOAD_DATA))
-							.invoke(handler, packet);
-					completion.accept(true);
+					Object layerRange = dataManagerClass.getMethod("getRenderLayerRange").invoke(null);
+					Object scheduler = taskSchedulerClass.getMethod("getInstanceClient").invoke(null);
+					Object task = commandPasteTaskClass
+							.getConstructor(Collection.class, layerRangeClass, boolean.class)
+							.newInstance(List.of(selected), layerRange, true);
+					task.getClass()
+							.getMethod("setCompletionListener", completionListenerClass)
+							.invoke(task, completionListener(completion));
+					taskSchedulerClass
+							.getMethod("scheduleTask", taskInterfaceClass, int.class)
+							.invoke(scheduler, task, 1);
 				} catch (Throwable throwable) {
-					CarpetWindAddition.LOGGER.warn("Failed to start the Litematica Servux paste", throwable);
+					CarpetWindAddition.LOGGER.warn("Failed to start the Litematica command paste", throwable);
 					completion.accept(false);
 				}
 			});
 			return true;
 		} catch (Throwable throwable) {
-			CarpetWindAddition.LOGGER.warn("Failed to hand the Servux paste to the client thread", throwable);
+			CarpetWindAddition.LOGGER.warn("Failed to hand the command paste to the client thread", throwable);
 			return false;
 		}
 	}

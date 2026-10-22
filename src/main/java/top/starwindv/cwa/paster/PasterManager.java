@@ -21,6 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.util.CwaMessages;
 import top.starwindv.cwa.util.ItemTransfer;
@@ -412,6 +413,7 @@ public final class PasterManager {
 				player.getUUID(),
 				snapshot.id(),
 				snapshot.requiredMaterials(),
+				snapshot.bounds(),
 				level,
 				temporaryRegions,
 				server.getTickCount(),
@@ -460,6 +462,32 @@ public final class PasterManager {
 		finishPaste(player.level().getServer(), session, success);
 	}
 
+	public static void handleRemoteCommand(ServerPlayer player, PasterCommandPayload payload) {
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session == null
+				|| !session.remote
+				|| !session.placementId.equals(payload.placementId())) {
+			return;
+		}
+
+		String command = PasterCommandRules.normalize(payload.command());
+		if (!PasterCommandRules.isValid(command, session.bounds)) {
+			CarpetWindAddition.LOGGER.warn(
+					"Rejected remote paster command from {}: {}",
+					player.getScoreboardName(),
+					command.length() > 120 ? command.substring(0, 120) + "..." : command
+			);
+			return;
+		}
+
+		MinecraftServer server = player.level().getServer();
+		if (server == null) {
+			return;
+		}
+		CommandSourceStack source = player.createCommandSourceStack().withPermission(4);
+		server.getCommands().performPrefixedCommand(source, command);
+	}
+
 	public static void tick(MinecraftServer server) {
 		for (ActivePaste session : List.copyOf(ACTIVE_PASTES.values())) {
 			if (session.server != server) {
@@ -492,6 +520,17 @@ public final class PasterManager {
 			} else if (!session.seen && server.getTickCount() - session.startTick > 40) {
 				finishPaste(server, session, false);
 			}
+		}
+	}
+
+	public static void onPlayerDisconnect(ServerPlayer player) {
+		MinecraftServer server = player.level().getServer();
+		if (server == null) {
+			return;
+		}
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session != null) {
+			finishPaste(server, session, false);
 		}
 	}
 
@@ -592,6 +631,7 @@ public final class PasterManager {
 		private final UUID playerId;
 		private final UUID placementId;
 		private final List<PasterMaterial> consumedMaterials;
+		private final List<PasterBounds> bounds;
 		private final ServerLevel level;
 		private final List<NoUpdateManager.TemporaryRegion> temporaryRegions;
 		private final int startTick;
@@ -605,6 +645,7 @@ public final class PasterManager {
 				UUID playerId,
 				UUID placementId,
 				List<PasterMaterial> consumedMaterials,
+				List<PasterBounds> bounds,
 				ServerLevel level,
 				List<NoUpdateManager.TemporaryRegion> temporaryRegions,
 				int startTick,
@@ -614,6 +655,7 @@ public final class PasterManager {
 			this.playerId = playerId;
 			this.placementId = placementId;
 			this.consumedMaterials = List.copyOf(consumedMaterials);
+			this.bounds = List.copyOf(bounds);
 			this.level = level;
 			this.temporaryRegions = temporaryRegions;
 			this.startTick = startTick;

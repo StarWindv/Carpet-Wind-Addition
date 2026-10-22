@@ -2,8 +2,11 @@ package top.starwindv.cwa.paster;
 
 import java.util.List;
 import java.util.UUID;
+import org.jetbrains.annotations.Nullable;
 
 public final class PasterClient {
+	private static volatile @Nullable UUID activeCommandPaste;
+
 	private PasterClient() {
 	}
 
@@ -51,13 +54,40 @@ public final class PasterClient {
 	}
 
 	public static void handleStartPaste(PasterStartPastePayload request) {
-		boolean started = LitematicaBridge.startServuxPaste(
-				request.placementId(),
+		UUID placementId = request.placementId();
+		activeCommandPaste = placementId;
+		boolean started = LitematicaBridge.startCommandPaste(
+				placementId,
 				request.fingerprint(),
-				success -> PasterNetworking.sendSnapshotResult(request.placementId(), success)
+				success -> finishCommandPaste(placementId, success)
 		);
 		if (!started) {
-			PasterNetworking.sendSnapshotResult(request.placementId(), false);
+			finishCommandPaste(placementId, false);
 		}
+	}
+
+	/**
+	 * Called from the Litematica paste task right before it would send a vanilla
+	 * command. The command is forwarded through CWA so the server can authorize
+	 * only the command types produced by the paste task.
+	 */
+	public static boolean interceptCommand(String command) {
+		UUID placementId = activeCommandPaste;
+		if (placementId == null || !PasterCommandRules.canRoute(command)) {
+			return false;
+		}
+		return PasterNetworking.sendCommand(placementId, command);
+	}
+
+	public static void reset() {
+		activeCommandPaste = null;
+	}
+
+	private static void finishCommandPaste(UUID placementId, boolean success) {
+		if (!placementId.equals(activeCommandPaste)) {
+			return;
+		}
+		activeCommandPaste = null;
+		PasterNetworking.sendSnapshotResult(placementId, success);
 	}
 }

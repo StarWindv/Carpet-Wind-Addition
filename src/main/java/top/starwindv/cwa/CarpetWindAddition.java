@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import top.starwindv.cwa.paster.PasterManager;
 import top.starwindv.cwa.paster.PasterNetworking;
 import top.starwindv.cwa.stack.StackSizeManager;
 import top.starwindv.cwa.stack.StackSizesPayload;
@@ -25,6 +26,11 @@ public class CarpetWindAddition implements ModInitializer {
 		ServerPlayConnectionEvents.JOIN.register((listener, sender, server) -> {
 			if (listener.player != null) {
 				StackSizeManager.sendTo(listener.player);
+			}
+		});
+		ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
+			if (listener.player != null) {
+				PasterManager.onPlayerDisconnect(listener.player);
 			}
 		});
 	}
