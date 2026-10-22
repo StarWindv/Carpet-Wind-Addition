@@ -268,6 +268,18 @@ Carpet 规则:
 - HotTNT 兼容 Carpet-TIS 的 `tooledTNT`: 精准采集镐子使石头掉落石头时, 会继续烧炼为平滑石; 没有熔炉配方的掉落物保持不变.
 - 这些规则默认关闭.
 
+### 1.11 防水方块
+
+```text
+/carpet WaterproofRedstoneComponents true
+/carpet WaterproofCarpet true
+```
+
+- `WaterproofRedstoneComponents`: 水流不会冲掉拉杆、按钮、绊线钩、红石火把、红石粉、中继器和比较器; 方块保持原状, 也不会产生掉落物.
+- `WaterproofCarpet`: 水流不会冲掉任何地毯.
+- 只影响水流替换; 直接放置水、爆炸或玩家破坏等其它方式不受影响.
+- 这些规则默认关闭.
+
 ---
 
 ## II. License
