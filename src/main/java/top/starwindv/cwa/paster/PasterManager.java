@@ -491,8 +491,12 @@ public final class PasterManager {
 			session.feedbackDisabled = false;
 		}
 
-		CommandSourceStack source = player.createCommandSourceStack().withPermission(4);
-		server.getCommands().performPrefixedCommand(source, command);
+		try {
+			CommandSourceStack source = player.createCommandSourceStack().withPermission(4);
+			server.getCommands().performPrefixedCommand(source, command);
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to execute a remote paster command", throwable);
+		}
 	}
 
 	public static void tick(MinecraftServer server) {
@@ -556,10 +560,14 @@ public final class PasterManager {
 		ACTIVE_PASTES.remove(session.playerId);
 
 		if (session.remote && session.feedbackDisabled) {
-			server.getCommands().performPrefixedCommand(
-					server.createCommandSourceStack(),
-					"gamerule send_command_feedback true"
-			);
+			try {
+				server.getCommands().performPrefixedCommand(
+						server.createCommandSourceStack(),
+						"gamerule send_command_feedback true"
+				);
+			} catch (Throwable throwable) {
+				CarpetWindAddition.LOGGER.warn("Failed to restore command feedback after a paster paste", throwable);
+			}
 			session.feedbackDisabled = false;
 		}
 
