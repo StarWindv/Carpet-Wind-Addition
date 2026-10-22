@@ -21,6 +21,8 @@ public final class CwaSettings {
 	public static final String QUICK_ICE_TO_WATER = "QuickIceToWater";
 	public static final String QUICK_ITW_CHECK = "QuickITWCheck";
 	public static final String HOT_TNT = "HotTNT";
+	public static final String WATERPROOF_REDSTONE_COMPONENTS = "WaterproofRedstoneComponents";
+	public static final String WATERPROOF_CARPET = "WaterproofCarpet";
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NeverFull = false;
@@ -60,6 +62,12 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean HotTNT = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean WaterproofRedstoneComponents = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean WaterproofCarpet = false;
 
 	private CwaSettings() {
 	}

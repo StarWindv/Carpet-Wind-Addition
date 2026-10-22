@@ -20,7 +20,8 @@
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin",
 		"ShapelessRecipeAccessor",
-		"ShapelessRecipeMixin"
+		"ShapelessRecipeMixin",
+		"WaterproofBlocksMixin"
 	],
 	"client": [
 		"ClientSuggestionProviderMixin"
