@@ -484,6 +484,12 @@ public final class PasterManager {
 		if (server == null) {
 			return;
 		}
+		if (command.equalsIgnoreCase("gamerule send_command_feedback false")) {
+			session.feedbackDisabled = true;
+		} else if (command.equalsIgnoreCase("gamerule send_command_feedback true")) {
+			session.feedbackDisabled = false;
+		}
+
 		CommandSourceStack source = player.createCommandSourceStack().withPermission(4);
 		server.getCommands().performPrefixedCommand(source, command);
 	}
@@ -547,6 +553,14 @@ public final class PasterManager {
 			NoUpdateManager.endTemporary(session.level, region);
 		}
 		ACTIVE_PASTES.remove(session.playerId);
+
+		if (session.remote && session.feedbackDisabled) {
+			server.getCommands().performPrefixedCommand(
+					server.createCommandSourceStack(),
+					"gamerule send_command_feedback true"
+			);
+			session.feedbackDisabled = false;
+		}
 
 		if (success) {
 			consumePastedMaterials(server, session.playerId, session.placementId, session.consumedMaterials);
@@ -637,6 +651,7 @@ public final class PasterManager {
 		private final int startTick;
 		private final boolean remote;
 		private boolean seen;
+		private boolean feedbackDisabled;
 		private int notRunningSince = -1;
 		private @Nullable Boolean completionResult;
 

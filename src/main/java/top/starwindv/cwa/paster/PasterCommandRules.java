@@ -75,10 +75,11 @@ public final class PasterCommandRules {
 		}
 
 		return switch (tokens[0]) {
-			case "setblock" -> tokens.length >= 5 && blockPositions(tokens, bounds, 1);
+			case "setblock" -> tokens.length >= 5
+					&& (blockPositions(tokens, bounds, 1) || isAir(tokens[4]));
 			case "fill" -> tokens.length >= 8 && blockPositions(tokens, bounds, 1, 4);
-			case "summon" -> tokens.length >= 5 && blockPositions(tokens, bounds, 2);
-			case "clone" -> tokens.length >= 10 && blockPositions(tokens, bounds, 1, 4, 7);
+			case "summon" -> tokens.length >= 5 && floatingPositions(tokens, bounds, 2);
+			case "clone" -> tokens.length >= 10 && blockPositions(tokens, bounds, 7);
 			case "data" -> validDataCommand(tokens, bounds);
 			default -> false;
 		};
@@ -95,6 +96,15 @@ public final class PasterCommandRules {
 			return selectorPositions(tokens[3], bounds);
 		}
 		return false;
+	}
+
+	private static boolean isAir(String blockState) {
+		return blockState.equals("air")
+				|| blockState.equals("minecraft:air")
+				|| blockState.equals("cave_air")
+				|| blockState.equals("minecraft:cave_air")
+				|| blockState.equals("void_air")
+				|| blockState.equals("minecraft:void_air");
 	}
 
 	private static boolean blockPositions(String[] tokens, List<PasterBounds> bounds, int... starts) {
@@ -115,6 +125,21 @@ public final class PasterCommandRules {
 			}
 		}
 		return true;
+	}
+
+	private static boolean floatingPositions(String[] tokens, List<PasterBounds> bounds, int start) {
+		if (start + 2 >= tokens.length) {
+			return false;
+		}
+
+		try {
+			int x = (int) Math.floor(Double.parseDouble(tokens[start]));
+			int y = (int) Math.floor(Double.parseDouble(tokens[start + 1]));
+			int z = (int) Math.floor(Double.parseDouble(tokens[start + 2]));
+			return inside(bounds, x, y, z);
+		} catch (NumberFormatException ignored) {
+			return false;
+		}
 	}
 
 	private static boolean selectorPositions(String selector, List<PasterBounds> bounds) {
