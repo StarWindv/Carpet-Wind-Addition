@@ -466,7 +466,8 @@ public final class PasterManager {
 		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
 		if (session == null
 				|| !session.remote
-				|| !session.placementId.equals(payload.placementId())) {
+				|| !session.placementId.equals(payload.placementId())
+				|| session.level != player.level()) {
 			return;
 		}
 
