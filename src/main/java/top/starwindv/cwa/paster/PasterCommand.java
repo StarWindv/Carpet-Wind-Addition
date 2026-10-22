@@ -7,6 +7,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -29,11 +31,7 @@ public final class PasterCommand {
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("paster")
-				.requires(source -> (LitematicaBridge.isAvailable() || source.getServer().isDedicatedServer())
-						&& LitematicaSettings.LitematicaPaster
-						&& (AllowManager.canUseHostCommand(source, "paster")
-						|| (source.getServer().isDedicatedServer()
-						&& source.hasPermission(2))))
+				.requires(PasterCommand::mayUse)
 				.then(Commands.literal("collect")
 						.then(Commands.literal("self")
 								.executes(PasterCommand::collectSelf))
@@ -52,6 +50,33 @@ public final class PasterCommand {
 						.then(Commands.argument("start", BlockPosArgument.blockPos())
 								.then(Commands.argument("end", BlockPosArgument.blockPos())
 										.executes(PasterCommand::returnRange)))));
+	}
+
+	private static boolean mayUse(CommandSourceStack source) {
+		if (!LitematicaSettings.LitematicaPaster) {
+			return false;
+		}
+
+		boolean dedicated = isDedicated(source);
+		if (!LitematicaBridge.isAvailable() && !dedicated) {
+			return false;
+		}
+
+		// ClientboundCommandsPacket evaluates this predicate with a source that
+		// has no server attached. Do not reject the command while serializing
+		// the command tree; execution is checked again with the real source.
+		if (source.getServer() == null) {
+			return true;
+		}
+
+		return AllowManager.canUseHostCommand(source, "paster")
+				|| (dedicated && source.hasPermission(2));
+	}
+
+	private static boolean isDedicated(CommandSourceStack source) {
+		return source.getServer() != null
+				? source.getServer().isDedicatedServer()
+				: FabricLoader.getInstance().getEnvironmentType() == EnvType.SERVER;
 	}
 
 	private static int collectSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
