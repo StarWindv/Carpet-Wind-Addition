@@ -39,7 +39,7 @@ public final class LitematicaBridge {
 	private static final String TASK_INTERFACE = "fi.dy.masa.litematica.scheduler.ITask";
 	private static final String COMPLETION_LISTENER = "fi.dy.masa.malilib.interfaces.ICompletionListener";
 	private static final String PASTE_TASK = "fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkDirect";
-	private static final String LAYER_RANGE = "fi.dy.masa.malilib.util.position.LayerRange";
+	private static final String LAYER_RANGE = "fi.dy.masa.malilib.util.LayerRange";
 	private static final String DATA_MANAGER = "fi.dy.masa.litematica.data.DataManager";
 	private static final String SERVUX_HANDLER = "fi.dy.masa.litematica.network.ServuxLitematicaHandler";
 	private static final String SERVUX_PACKET = "fi.dy.masa.litematica.network.ServuxLitematicaPacket";
