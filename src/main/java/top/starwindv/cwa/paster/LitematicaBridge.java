@@ -5,7 +5,6 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -41,11 +40,9 @@ public final class LitematicaBridge {
 	private static final String COMPLETION_LISTENER = "fi.dy.masa.malilib.interfaces.ICompletionListener";
 	private static final String PASTE_TASK = "fi.dy.masa.litematica.scheduler.tasks.TaskPasteSchematicPerChunkDirect";
 	private static final String LAYER_RANGE = "fi.dy.masa.malilib.util.position.LayerRange";
-	private static final String ENTITY_DATA_MANAGER = "fi.dy.masa.litematica.data.EntityDataManager";
 	private static final String DATA_MANAGER = "fi.dy.masa.litematica.data.DataManager";
 	private static final String SERVUX_HANDLER = "fi.dy.masa.litematica.network.ServuxLitematicaHandler";
 	private static final String SERVUX_PACKET = "fi.dy.masa.litematica.network.ServuxLitematicaPacket";
-	private static final String COMPOUND_DATA = "fi.dy.masa.malilib.util.data.tag.CompoundData";
 	private static final String CLIENT_PAYLOAD_DATA = "fi.dy.masa.malilib.network.IClientPayloadData";
 
 	private static boolean initialized;
@@ -271,15 +268,10 @@ public final class LitematicaBridge {
 				return null;
 			}
 			Object file = schematicClass.getMethod("getFile").invoke(schematic);
-			Path path;
-			if (file instanceof Path filePath) {
-				path = filePath;
-			} else if (file instanceof File legacyFile) {
-				path = legacyFile.toPath();
-			} else {
+			if (!(file instanceof File schematicFile)) {
 				return null;
 			}
-			byte[] bytes = Files.readAllBytes(path);
+			byte[] bytes = Files.readAllBytes(schematicFile.toPath());
 			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to fingerprint the selected Litematica schematic", throwable);
@@ -288,26 +280,9 @@ public final class LitematicaBridge {
 	}
 
 	private static boolean hasServuxServer() throws ReflectiveOperationException {
-		try {
-			return (Boolean) Class.forName(DATA_MANAGER)
-					.getMethod("hasServuxServer")
-					.invoke(null);
-		} catch (NoSuchMethodException | ClassNotFoundException ignored) {
-			Object entityDataManager = Class.forName(ENTITY_DATA_MANAGER)
-					.getMethod("getInstance")
-					.invoke(null);
-			return (Boolean) entityDataManager.getClass()
-					.getMethod("hasServuxServer")
-					.invoke(entityDataManager);
-		}
-	}
-
-	private static @Nullable Method findMethod(Class<?> owner, String name, Class<?>... parameters) {
-		try {
-			return owner.getMethod(name, parameters);
-		} catch (NoSuchMethodException ignored) {
-			return null;
-		}
+		return (Boolean) Class.forName(DATA_MANAGER)
+				.getMethod("hasServuxServer")
+				.invoke(null);
 	}
 
 	public static boolean startServuxPaste(UUID placementId, String fingerprint, Consumer<Boolean> completion) {
@@ -347,32 +322,13 @@ public final class LitematicaBridge {
 						return;
 					}
 
-					// Litematica 0.19.x on 1.21.1 uses toNbt(boolean) and raw
-					// CompoundTag in its Servux packet. Newer versions use
-					// malilib's CompoundData and toData(boolean).
-					Object data;
-					Object packet;
-					Method toNbt = findMethod(placementClass, "toNbt", boolean.class);
-					if (toNbt != null) {
-						data = toNbt.invoke(selected, true);
-						data.getClass()
-								.getMethod("putString", String.class, String.class)
-								.invoke(data, "Task", "LitematicaPaste");
-						packet = Class.forName(SERVUX_PACKET)
-								.getMethod("ResponseC2SStart", CompoundTag.class)
-								.invoke(null, data);
-					} else {
-						data = placementClass.getMethod("toData", boolean.class).invoke(selected, true);
-						data.getClass()
-								.getMethod("putString", String.class, String.class)
-								.invoke(data, "Task", "LitematicaPaste");
-						data.getClass()
-								.getMethod("putInt", String.class, int.class)
-								.invoke(data, "Interval", 1);
-						packet = Class.forName(SERVUX_PACKET)
-								.getMethod("ResponseC2SStart", Class.forName(COMPOUND_DATA))
-								.invoke(null, data);
-					}
+					Object data = placementClass.getMethod("toNbt", boolean.class).invoke(selected, true);
+					data.getClass()
+							.getMethod("putString", String.class, String.class)
+							.invoke(data, "Task", "LitematicaPaste");
+					Object packet = Class.forName(SERVUX_PACKET)
+							.getMethod("ResponseC2SStart", CompoundTag.class)
+							.invoke(null, data);
 					Object handler = Class.forName(SERVUX_HANDLER)
 							.getMethod("getInstance")
 							.invoke(null);
