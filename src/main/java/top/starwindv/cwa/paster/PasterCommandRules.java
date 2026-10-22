@@ -93,7 +93,11 @@ public final class PasterCommandRules {
 			return tokens.length >= 6 && blockPositions(tokens, bounds, 3);
 		}
 		if (tokens[2].equals("entity")) {
-			return selectorPositions(tokens[3], bounds);
+			return (tokens[3].contains("type=item_frame")
+					|| tokens[3].contains("type=minecraft:item_frame")
+					|| tokens[3].contains("type=glow_item_frame")
+					|| tokens[3].contains("type=minecraft:glow_item_frame"))
+					&& selectorPositions(tokens[3], bounds);
 		}
 		return false;
 	}
