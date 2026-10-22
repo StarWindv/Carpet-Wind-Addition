@@ -39,7 +39,6 @@ public final class PasterCommand {
 								.then(Commands.argument("page", IntegerArgumentType.integer(1))
 										.executes(PasterCommand::listMaterialsPage)))
 						.then(Commands.argument("start", BlockPosArgument.blockPos())
-								.requires(PasterCommand::mayUseRange)
 								.then(Commands.argument("end", BlockPosArgument.blockPos())
 										.executes(PasterCommand::collectRange))))
 				.then(Commands.literal("paste")
@@ -48,7 +47,6 @@ public final class PasterCommand {
 						.then(Commands.literal("self")
 								.executes(PasterCommand::returnSelf))
 						.then(Commands.argument("start", BlockPosArgument.blockPos())
-								.requires(PasterCommand::mayUseRange)
 								.then(Commands.argument("end", BlockPosArgument.blockPos())
 										.executes(PasterCommand::returnRange)))));
 	}
@@ -74,22 +72,6 @@ public final class PasterCommand {
 			return source.getPlayer() != null;
 		}
 
-		return AllowManager.canUseHostCommand(source, "paster");
-	}
-
-	private static boolean mayUseRange(CommandSourceStack source) {
-		if (!mayUse(source)) {
-			return false;
-		}
-		if (source.getServer() == null) {
-			return true;
-		}
-		if (isDedicated(source)) {
-			// Range collection can pull from arbitrary containers, so keep it
-			// operator-only on dedicated servers. Self collection and pasting
-			// remain available to every player.
-			return Commands.LEVEL_GAMEMASTERS.check(source.permissions());
-		}
 		return AllowManager.canUseHostCommand(source, "paster");
 	}
 
