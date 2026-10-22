@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.allow.AllowManager;
 
 @Mixin(Commands.class)
@@ -22,8 +23,15 @@ public abstract class CommandsMixin {
 			return;
 		}
 
-		cwa$fillUsableCommands(source, target, sourceStack, converted, false);
-		ci.cancel();
+		try {
+			cwa$fillUsableCommands(source, target, sourceStack, converted, false);
+			ci.cancel();
+		} catch (Throwable throwable) {
+			// Never make /allow fail just because a third-party command node
+			// cannot be copied. Vanilla will run as a fallback; the guest may
+			// lose the extra allowed nodes but keeps a valid command tree.
+			CarpetWindAddition.LOGGER.warn("Failed to add allowed commands to the command tree", throwable);
+		}
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
@@ -37,12 +45,20 @@ public abstract class CommandsMixin {
 			if (child.canUse(commandFilter) || allowed) {
 				ArgumentBuilder builder = child.createBuilder();
 				if (builder.getRedirect() != null) {
-					builder.redirect((CommandNode) converted.get(builder.getRedirect()));
+					CommandNode redirect = (CommandNode) converted.get(builder.getRedirect());
+					// A redirect target can be outside the copied subtree when
+					// a command is made visible through /allow. Leaving the
+					// redirect unset is safer than passing null to Brigadier.
+					if (redirect != null) {
+						builder.redirect(redirect);
+					}
 				}
 
 				CommandNode node = builder.build();
 				converted.put(child, node);
-				target.addChild(node);
+				if (target.getChild(node.getName()) == null) {
+					target.addChild(node);
+				}
 
 				if (!child.getChildren().isEmpty()) {
 					cwa$fillUsableCommands(child, node, commandFilter, converted, allowed);
