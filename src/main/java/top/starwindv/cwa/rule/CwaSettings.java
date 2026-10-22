@@ -18,6 +18,9 @@ public final class CwaSettings {
 	public static final String MOBS_NO_EQUIPMENT_DROP = "MobsNoEquipmentDrop";
 	public static final String BUCKET_TANS_OSIDIAN_TO_LAVA = "BucketTansOsidianToLava";
 	public static final String OBSIDIAN_TO_LAVA_RECIPE = "ObsidianToLavaRecipe";
+	public static final String QUICK_ICE_TO_WATER = "QuickIceToWater";
+	public static final String QUICK_ITW_CHECK = "QuickITWCheck";
+	public static final String HOT_TNT = "HotTNT";
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NeverFull = false;
@@ -48,6 +51,15 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean ObsidianToLavaRecipe = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean QuickIceToWater = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean QuickITWCheck = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean HotTNT = false;
 
 	private CwaSettings() {
 	}
