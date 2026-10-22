@@ -16,6 +16,7 @@ public final class PasterNetworking {
 		PayloadTypeRegistry.clientboundPlay().register(PasterStartPastePayload.TYPE, PasterStartPastePayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(PasterSnapshotPayload.TYPE, PasterSnapshotPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(PasterPasteResultPayload.TYPE, PasterPasteResultPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(PasterCommandPayload.TYPE, PasterCommandPayload.CODEC);
 	}
 
 	public static void registerServerReceivers() {
@@ -27,6 +28,8 @@ public final class PasterNetworking {
 						payload.placementId(),
 						payload.success()
 				)));
+		ServerPlayNetworking.registerGlobalReceiver(PasterCommandPayload.TYPE, (payload, context) ->
+				context.server().execute(() -> PasterManager.handleRemoteCommand(context.player(), payload)));
 	}
 
 	public static void registerClientReceivers() {
@@ -73,6 +76,20 @@ public final class PasterNetworking {
 	static void sendSnapshotResult(UUID placementId, boolean success) {
 		if (ClientPlayNetworking.canSend(PasterPasteResultPayload.TYPE)) {
 			ClientPlayNetworking.send(new PasterPasteResultPayload(placementId, success));
+		}
+	}
+
+	static boolean sendCommand(UUID placementId, String command) {
+		try {
+			if (!ClientPlayNetworking.canSend(PasterCommandPayload.TYPE)) {
+				CarpetWindAddition.LOGGER.warn("Cannot forward a paster command: the server has no CWA paster command channel");
+				return false;
+			}
+			ClientPlayNetworking.send(new PasterCommandPayload(placementId, command));
+			return true;
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to forward a paster command", throwable);
+			return false;
 		}
 	}
 }

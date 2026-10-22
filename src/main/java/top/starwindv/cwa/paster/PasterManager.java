@@ -15,6 +15,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
@@ -22,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jspecify.annotations.Nullable;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.util.ItemTransfer;
 
@@ -411,6 +413,7 @@ public final class PasterManager {
 				player.getUUID(),
 				snapshot.id(),
 				snapshot.requiredMaterials(),
+				snapshot.bounds(),
 				level,
 				temporaryRegions,
 				server.getTickCount(),
@@ -459,6 +462,39 @@ public final class PasterManager {
 		finishPaste(player.level().getServer(), session, success);
 	}
 
+	public static void handleRemoteCommand(ServerPlayer player, PasterCommandPayload payload) {
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session == null
+				|| !session.remote
+				|| !session.placementId.equals(payload.placementId())) {
+			return;
+		}
+
+		String command = PasterCommandRules.normalize(payload.command());
+		if (!PasterCommandRules.isValid(command, session.bounds)) {
+			CarpetWindAddition.LOGGER.warn(
+					"Rejected remote paster command from {}: {}",
+					player.getScoreboardName(),
+					command.length() > 120 ? command.substring(0, 120) + "..." : command
+			);
+			return;
+		}
+
+		MinecraftServer server = player.level().getServer();
+		if (server == null) {
+			return;
+		}
+		if (command.equalsIgnoreCase("gamerule send_command_feedback false")) {
+			session.feedbackDisabled = true;
+		} else if (command.equalsIgnoreCase("gamerule send_command_feedback true")) {
+			session.feedbackDisabled = false;
+		}
+
+		CommandSourceStack source = player.createCommandSourceStack()
+				.withPermission(PermissionSet.ALL_PERMISSIONS);
+		server.getCommands().performPrefixedCommand(source, command);
+	}
+
 	public static void tick(MinecraftServer server) {
 		for (ActivePaste session : List.copyOf(ACTIVE_PASTES.values())) {
 			if (session.server != server) {
@@ -494,6 +530,17 @@ public final class PasterManager {
 		}
 	}
 
+	public static void onPlayerDisconnect(ServerPlayer player) {
+		MinecraftServer server = player.level().getServer();
+		if (server == null) {
+			return;
+		}
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session != null) {
+			finishPaste(server, session, false);
+		}
+	}
+
 	private static void failPaste(MinecraftServer server, ActivePaste session) {
 		finishPaste(server, session, false);
 	}
@@ -507,6 +554,14 @@ public final class PasterManager {
 			NoUpdateManager.endTemporary(session.level, region);
 		}
 		ACTIVE_PASTES.remove(session.playerId);
+
+		if (session.remote && session.feedbackDisabled) {
+			server.getCommands().performPrefixedCommand(
+					server.createCommandSourceStack(),
+					"gamerule send_command_feedback true"
+			);
+			session.feedbackDisabled = false;
+		}
 
 		if (success) {
 			consumePastedMaterials(server, session.playerId, session.placementId, session.consumedMaterials);
@@ -591,11 +646,13 @@ public final class PasterManager {
 		private final UUID playerId;
 		private final UUID placementId;
 		private final List<PasterMaterial> consumedMaterials;
+		private final List<PasterBounds> bounds;
 		private final ServerLevel level;
 		private final List<NoUpdateManager.TemporaryRegion> temporaryRegions;
 		private final int startTick;
 		private final boolean remote;
 		private boolean seen;
+		private boolean feedbackDisabled;
 		private int notRunningSince = -1;
 		private @Nullable Boolean completionResult;
 
@@ -604,6 +661,7 @@ public final class PasterManager {
 				UUID playerId,
 				UUID placementId,
 				List<PasterMaterial> consumedMaterials,
+				List<PasterBounds> bounds,
 				ServerLevel level,
 				List<NoUpdateManager.TemporaryRegion> temporaryRegions,
 				int startTick,
@@ -613,6 +671,7 @@ public final class PasterManager {
 			this.playerId = playerId;
 			this.placementId = placementId;
 			this.consumedMaterials = List.copyOf(consumedMaterials);
+			this.bounds = List.copyOf(bounds);
 			this.level = level;
 			this.temporaryRegions = temporaryRegions;
 			this.startTick = startTick;
