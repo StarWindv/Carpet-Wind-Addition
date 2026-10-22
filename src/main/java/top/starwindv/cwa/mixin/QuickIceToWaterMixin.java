@@ -60,9 +60,11 @@ public abstract class QuickIceToWaterMixin {
 		BlockPos pos = context.getClickedPos();
 		Level level = context.getLevel();
 		if (!level.isClientSide()) {
-			if (!level.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState())) {
-				return;
-			}
+			// The clicked position may already contain water (for example after
+			// an earlier use). It is still a valid conversion, so do not fall
+			// through to the vanilla ice placement just because the block did
+			// not change.
+			level.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState());
 
 			ice.consume(1, player);
 			if (!player.hasInfiniteMaterials()) {
