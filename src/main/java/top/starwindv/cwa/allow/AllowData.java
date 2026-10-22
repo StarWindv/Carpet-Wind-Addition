@@ -36,7 +36,7 @@ public final class AllowData extends SavedData {
 	}
 
 	public static @Nullable AllowData get(MinecraftServer server) {
-		return server.getDataStorage().get(TYPE);
+		return server == null ? null : server.getDataStorage().get(TYPE);
 	}
 
 	public static AllowData getOrCreate(MinecraftServer server) {
