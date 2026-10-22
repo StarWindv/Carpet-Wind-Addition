@@ -78,7 +78,7 @@ public final class PasterCommandRules {
 			case "setblock" -> tokens.length >= 5
 					&& (blockPositions(tokens, bounds, 1) || isAir(tokens[4]));
 			case "fill" -> tokens.length >= 8 && blockPositions(tokens, bounds, 1, 4);
-			case "summon" -> tokens.length >= 5 && blockPositions(tokens, bounds, 2);
+			case "summon" -> tokens.length >= 5 && floatingPositions(tokens, bounds, 2);
 			case "clone" -> tokens.length >= 10 && blockPositions(tokens, bounds, 7);
 			case "data" -> validDataCommand(tokens, bounds);
 			default -> false;
@@ -125,6 +125,21 @@ public final class PasterCommandRules {
 			}
 		}
 		return true;
+	}
+
+	private static boolean floatingPositions(String[] tokens, List<PasterBounds> bounds, int start) {
+		if (start + 2 >= tokens.length) {
+			return false;
+		}
+
+		try {
+			int x = (int) Math.floor(Double.parseDouble(tokens[start]));
+			int y = (int) Math.floor(Double.parseDouble(tokens[start + 1]));
+			int z = (int) Math.floor(Double.parseDouble(tokens[start + 2]));
+			return inside(bounds, x, y, z);
+		} catch (NumberFormatException ignored) {
+			return false;
+		}
 	}
 
 	private static boolean selectorPositions(String selector, List<PasterBounds> bounds) {
