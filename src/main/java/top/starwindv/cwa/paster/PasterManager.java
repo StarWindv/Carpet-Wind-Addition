@@ -28,13 +28,13 @@ import top.starwindv.cwa.util.ItemTransfer;
 
 public final class PasterManager {
 	private static final Map<UUID, ActivePaste> ACTIVE_PASTES = new ConcurrentHashMap<>();
-	private static volatile Set<String> protectedPlacementIds = Set.of();
+	private static volatile Map<String, String> protectedPlacements = Map.of();
 
 	private PasterManager() {
 	}
 
-	public static Set<String> protectedPlacementIds() {
-		return protectedPlacementIds;
+	public static Map<String, String> protectedPlacements() {
+		return protectedPlacements;
 	}
 
 	public static boolean isPasteRunning() {
@@ -47,7 +47,7 @@ public final class PasterManager {
 
 	private static void refreshProtectedPlacements(MinecraftServer server) {
 		PasterData data = PasterData.get(server);
-		protectedPlacementIds = data == null ? Set.of() : Set.copyOf(data.placementIds());
+		protectedPlacements = data == null ? Map.of() : data.fingerprints();
 	}
 
 	public static CollectResult collectSelf(ServerPlayer player, PlacementSnapshot snapshot) {
@@ -67,9 +67,10 @@ public final class PasterManager {
 			for (ItemStack stack : collected) {
 				PasterMaterials.add(stored, stack);
 			}
-			data.set(player.getUUID(), snapshot.id(), stored);
+			data.set(player.getUUID(), snapshot.id(), stored, snapshot.fingerprint());
 			player.inventoryMenu.broadcastChanges();
 		}
+		logUncollectedPlayerMaterials(player, snapshot, remaining);
 		MinecraftServer server = player.level().getServer();
 		if (server != null) {
 			refreshProtectedPlacements(server);
@@ -80,6 +81,98 @@ public final class PasterManager {
 				missingCount(remaining),
 				collectedMaterials(snapshot.requiredMaterials(), before, remaining)
 		);
+	}
+
+	private static void logUncollectedPlayerMaterials(
+			ServerPlayer player,
+			PlacementSnapshot snapshot,
+			int[] remaining
+	) {
+		if (!hasRemaining(remaining)) {
+			return;
+		}
+
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
+			logUncollectedStack(
+					inventory.getItem(slot),
+					"inventory slot " + slot,
+					snapshot.requiredMaterials(),
+					remaining
+			);
+		}
+		logUncollectedStack(
+				inventory.getItem(Inventory.SLOT_OFFHAND),
+				"offhand",
+				snapshot.requiredMaterials(),
+				remaining
+		);
+		for (int slot = 1; slot <= 4; slot++) {
+			logUncollectedStack(
+					player.inventoryMenu.getSlot(slot).getItem(),
+					"crafting slot " + slot,
+					snapshot.requiredMaterials(),
+					remaining
+			);
+		}
+	}
+
+	private static void logUncollectedContainer(
+			Container container,
+			String where,
+			List<PasterMaterial> required,
+			int[] remaining
+	) {
+		if (!hasRemaining(remaining)) {
+			return;
+		}
+
+		for (int slot = 0; slot < container.getContainerSize(); slot++) {
+			logUncollectedStack(container.getItem(slot), where + " slot " + slot, required, remaining);
+		}
+	}
+
+	private static void logUncollectedStack(
+			ItemStack stack,
+			String where,
+			List<PasterMaterial> required,
+			int[] remaining
+	) {
+		if (stack.isEmpty()) {
+			return;
+		}
+
+		for (int index = 0; index < required.size(); index++) {
+			if (remaining[index] <= 0) {
+				continue;
+			}
+
+			PasterMaterial material = required.get(index);
+			ItemStack sample = material.sample();
+			if (!stack.is(sample.getItem())) {
+				continue;
+			}
+
+			CarpetWindAddition.LOGGER.info(
+					"Paster uncollected same item: {} item={} count={} matches={} stackPatch={} samplePatch={} remaining={}",
+					where,
+					stack.getItem(),
+					stack.getCount(),
+					PasterMaterials.matches(stack, sample),
+					stack.getComponentsPatch(),
+					sample.getComponentsPatch(),
+					remaining[index]
+			);
+		}
+	}
+
+	private static boolean hasRemaining(int[] remaining) {
+		for (int value : remaining) {
+			if (value > 0) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static CollectResult collectRange(
@@ -111,13 +204,19 @@ public final class PasterManager {
 			if (changed) {
 				container.setChanged();
 			}
+			logUncollectedContainer(
+					container,
+					"container " + pos.toShortString(),
+					snapshot.requiredMaterials(),
+					remaining
+			);
 		}
 
 		if (!collected.isEmpty()) {
 			for (ItemStack stack : collected) {
 				PasterMaterials.add(stored, stack);
 			}
-			data.set(player.getUUID(), snapshot.id(), stored);
+			data.set(player.getUUID(), snapshot.id(), stored, snapshot.fingerprint());
 		}
 		refreshProtectedPlacements(level.getServer());
 
@@ -293,6 +392,118 @@ public final class PasterManager {
 			}
 		}
 		return false;
+	}
+
+	public static ReturnOrphanedResult returnOrphanedSelf(
+			ServerPlayer player,
+			Set<String> activePlacementIds
+	) {
+		PasterData data = PasterData.getOrCreate(player.level().getServer());
+		Inventory inventory = player.getInventory();
+		int returned = 0;
+		int remaining = 0;
+		int placements = 0;
+
+		for (String key : List.copyOf(data.entries().keySet())) {
+			UUID id = orphanedPlacementId(player, key, activePlacementIds);
+			if (id == null) {
+				continue;
+			}
+
+			List<ItemStack> stored = data.get(player.getUUID(), id);
+			if (stored.isEmpty()) {
+				continue;
+			}
+
+			placements++;
+			int before = total(stored);
+			List<ItemStack> leftover = new ArrayList<>();
+			for (ItemStack stack : stored) {
+				ItemStack rest = ItemTransfer.insertIntoInventory(inventory, stack);
+				if (!rest.isEmpty()) {
+					leftover.add(rest);
+				}
+			}
+			data.set(player.getUUID(), id, leftover);
+			returned += before - total(leftover);
+			remaining += total(leftover);
+		}
+
+		player.inventoryMenu.broadcastChanges();
+		refreshProtectedPlacements(player.level().getServer());
+		return new ReturnOrphanedResult(returned, remaining, placements);
+	}
+
+	public static ReturnOrphanedResult returnOrphanedRange(
+			ServerLevel level,
+			ServerPlayer player,
+			Set<String> activePlacementIds,
+			BlockPos first,
+			BlockPos second
+	) {
+		PasterData data = PasterData.getOrCreate(level.getServer());
+		List<ItemTransfer.ContainerEntry> containers = ItemTransfer.findContainerEntries(
+				level,
+				first,
+				second,
+				container -> true
+		);
+		int returned = 0;
+		int remaining = 0;
+		int placements = 0;
+
+		for (String key : List.copyOf(data.entries().keySet())) {
+			UUID id = orphanedPlacementId(player, key, activePlacementIds);
+			if (id == null) {
+				continue;
+			}
+
+			List<ItemStack> stored = data.get(player.getUUID(), id);
+			if (stored.isEmpty()) {
+				continue;
+			}
+
+			placements++;
+			int before = total(stored);
+			List<ItemStack> leftover = new ArrayList<>();
+			for (ItemStack stack : stored) {
+				ItemStack remainingStack = stack.copy();
+				for (ItemTransfer.ContainerEntry entry : containers) {
+					if (remainingStack.isEmpty()) {
+						break;
+					}
+					remainingStack = ItemTransfer.insertIntoContainer(entry.container(), remainingStack);
+				}
+				if (!remainingStack.isEmpty()) {
+					leftover.add(remainingStack);
+				}
+			}
+			data.set(player.getUUID(), id, leftover);
+			returned += before - total(leftover);
+			remaining += total(leftover);
+		}
+
+		refreshProtectedPlacements(level.getServer());
+		return new ReturnOrphanedResult(returned, remaining, placements);
+	}
+
+	private static @Nullable UUID orphanedPlacementId(
+			ServerPlayer player,
+			String key,
+			Set<String> activePlacementIds
+	) {
+		String prefix = player.getUUID() + "/";
+		if (!key.startsWith(prefix)) {
+			return null;
+		}
+
+		String placementId = key.substring(prefix.length());
+		try {
+			UUID id = UUID.fromString(placementId);
+			return activePlacementIds.contains(placementId) ? null : id;
+		} catch (IllegalArgumentException exception) {
+			return null;
+		}
 	}
 
 	public static ReturnResult returnSelf(ServerPlayer player, PlacementSnapshot snapshot) {
@@ -613,6 +824,11 @@ public final class PasterManager {
 
 	public static void onServerLoaded(MinecraftServer server) {
 		refreshProtectedPlacements(server);
+		CarpetWindAddition.LOGGER.info(
+				"Paster data loaded: {} protected placement(s): {}",
+				protectedPlacements.size(),
+				protectedPlacements
+		);
 	}
 
 	public static void onServerClosed(MinecraftServer server) {
@@ -625,7 +841,7 @@ public final class PasterManager {
 			}
 		}
 		ACTIVE_PASTES.clear();
-		protectedPlacementIds = Set.of();
+		protectedPlacements = Map.of();
 	}
 
 	private static int[] requiredRemaining(List<PasterMaterial> required, List<ItemStack> stored) {
@@ -656,6 +872,9 @@ public final class PasterManager {
 	}
 
 	public record ReturnResult(int returned, int remaining, List<BlockPos> containers) {
+	}
+
+	public record ReturnOrphanedResult(int returned, int remaining, int placements) {
 	}
 
 	private static final class ActivePaste {

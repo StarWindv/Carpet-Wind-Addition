@@ -20,6 +20,7 @@ public final class CwaSettings {
 	public static final String OBSIDIAN_TO_LAVA_RECIPE = "ObsidianToLavaRecipe";
 	public static final String QUICK_ICE_TO_WATER = "QuickIceToWater";
 	public static final String QUICK_ITW_CHECK = "QuickITWCheck";
+	public static final String QUICK_PLACE_OBSIDIAN = "QuickPlaceObsidian";
 	public static final String HOT_TNT = "HotTNT";
 	public static final String WATERPROOF_REDSTONE_COMPONENTS = "WaterproofRedstoneComponents";
 	public static final String WATERPROOF_CARPET = "WaterproofCarpet";
@@ -59,6 +60,9 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean QuickITWCheck = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean QuickPlaceObsidian = false;
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean HotTNT = false;

@@ -49,6 +49,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.OBSIDIAN_TO_LAVA_RECIPE) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.QUICK_ICE_TO_WATER) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.QUICK_ITW_CHECK) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.QUICK_PLACE_OBSIDIAN) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.HOT_TNT) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.WATERPROOF_REDSTONE_COMPONENTS) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.WATERPROOF_CARPET) == null) {

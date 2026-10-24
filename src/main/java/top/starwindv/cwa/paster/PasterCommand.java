@@ -7,6 +7,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
@@ -14,12 +15,15 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.util.CwaMessages;
 
@@ -50,7 +54,16 @@ public final class PasterCommand {
 								.executes(PasterCommand::returnSelf))
 						.then(Commands.argument("start", BlockPosArgument.blockPos())
 								.then(Commands.argument("end", BlockPosArgument.blockPos())
-										.executes(PasterCommand::returnRange)))));
+										.executes(PasterCommand::returnRange))))
+				.then(Commands.literal("debug")
+						.then(Commands.literal("backpack_info")
+								.executes(PasterCommand::debugBackpackInfo))
+						.then(Commands.literal("return")
+								.then(Commands.literal("self")
+										.executes(PasterCommand::debugReturnSelf))
+								.then(Commands.argument("start", BlockPosArgument.blockPos())
+										.then(Commands.argument("end", BlockPosArgument.blockPos())
+												.executes(PasterCommand::debugReturnRange))))));
 	}
 
 	private static boolean mayUse(CommandSourceStack source) {
@@ -340,6 +353,79 @@ public final class PasterCommand {
 		return result.returned() > 0 ? 1 : 0;
 	}
 
+	private static int debugReturnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		ServerPlayer player = source.getPlayerOrException();
+		if (useRemote(source)) {
+			source.sendFailure(Component.literal("CWA debug return is only available on the host client"));
+			return 0;
+		}
+		if (PasterManager.isPasteRunning(player.getUUID())) {
+			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			return 0;
+		}
+
+		Set<String> activePlacements = LitematicaBridge.activePlacementIds();
+		if (activePlacements == null) {
+			source.sendFailure(Component.literal("CWA debug return could not read the Litematica placements"));
+			return 0;
+		}
+
+		PasterManager.ReturnOrphanedResult result = PasterManager.returnOrphanedSelf(
+				player,
+				activePlacements
+		);
+		sendDebugReturnResult(source, result);
+		return result.returned() > 0 ? 1 : 0;
+	}
+
+	private static int debugReturnRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		ServerPlayer player = source.getPlayerOrException();
+		BlockPos start = BlockPosArgument.getBlockPos(context, "start");
+		BlockPos end = BlockPosArgument.getBlockPos(context, "end");
+		if (useRemote(source)) {
+			source.sendFailure(Component.literal("CWA debug return is only available on the host client"));
+			return 0;
+		}
+		if (PasterManager.isPasteRunning(player.getUUID())) {
+			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			return 0;
+		}
+
+		Set<String> activePlacements = LitematicaBridge.activePlacementIds();
+		if (activePlacements == null) {
+			source.sendFailure(Component.literal("CWA debug return could not read the Litematica placements"));
+			return 0;
+		}
+
+		PasterManager.ReturnOrphanedResult result = PasterManager.returnOrphanedRange(
+				source.getLevel(),
+				player,
+				activePlacements,
+				start,
+				end
+		);
+		sendDebugReturnResult(source, result);
+		return result.returned() > 0 ? 1 : 0;
+	}
+
+	private static void sendDebugReturnResult(
+			CommandSourceStack source,
+			PasterManager.ReturnOrphanedResult result
+	) {
+		if (result.placements() == 0 || result.returned() == 0) {
+			source.sendSuccess(() -> Component.literal("No orphaned paster materials to return"), false);
+			return;
+		}
+
+		source.sendSuccess(() -> Component.translatable(
+				"cwa.paster.return.result",
+				result.returned(),
+				result.remaining()
+		), false);
+	}
+
 	private static int returnRange(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
 		CommandSourceStack source = context.getSource();
 		ServerPlayer player = source.getPlayerOrException();
@@ -530,6 +616,118 @@ public final class PasterCommand {
 			return null;
 		}
 		return snapshot;
+	}
+
+	private static int debugBackpackInfo(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		ServerPlayer player = source.getPlayerOrException();
+		if (useRemote(source)) {
+			source.sendFailure(Component.literal("CWA paster debug is only available on the host client"));
+			return 0;
+		}
+
+		PlacementSnapshot snapshot = snapshot(source);
+		if (snapshot == null) {
+			return 0;
+		}
+
+		CarpetWindAddition.LOGGER.info(
+				"CWA DEBUG ==== paster debug start: player={} placement={} dimension={} ====",
+				player.getScoreboardName(),
+				snapshot.name(),
+				snapshot.dimension()
+		);
+
+		PasterData data = PasterData.get(source.getServer());
+		List<ItemStack> stored = data == null ? List.of() : data.get(player.getUUID(), snapshot.id());
+		for (int index = 0; index < snapshot.requiredMaterials().size(); index++) {
+			PasterMaterial material = snapshot.requiredMaterials().get(index);
+			ItemStack sample = material.sample();
+			int storedCount = PasterMaterials.count(stored, sample);
+			CarpetWindAddition.LOGGER.info(
+					"CWA DEBUG required[{}]: item={} count={} stored={} remaining={} patch={} components={}",
+					index,
+					itemId(sample),
+					material.count(),
+					storedCount,
+					Math.max(0, material.count() - storedCount),
+					sample.getComponentsPatch(),
+					sample.getComponents()
+			);
+		}
+
+		CarpetWindAddition.LOGGER.info("CWA DEBUG stored stacks: {}", stored.size());
+		for (int index = 0; index < stored.size(); index++) {
+			ItemStack stack = stored.get(index);
+			CarpetWindAddition.LOGGER.info(
+					"CWA DEBUG stored[{}]: item={} count={} patch={} components={}",
+					index,
+					itemId(stack),
+					stack.getCount(),
+					stack.getComponentsPatch(),
+					stack.getComponents()
+			);
+		}
+
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) {
+			debugSlot(snapshot, inventory.getItem(slot), "slot " + slot);
+		}
+		debugSlot(snapshot, inventory.getItem(Inventory.SLOT_OFFHAND), "offhand");
+		CarpetWindAddition.LOGGER.info("CWA DEBUG ==== paster debug end ====");
+		source.sendSuccess(() -> Component.literal("CWA paster debug: details written to latest.log"), false);
+		return 1;
+	}
+
+	private static void debugSlot(PlacementSnapshot snapshot, ItemStack stack, String where) {
+		if (stack.isEmpty()) {
+			return;
+		}
+
+		CarpetWindAddition.LOGGER.info(
+				"CWA DEBUG {}: item={} count={} patch={} components={}",
+				where,
+				itemId(stack),
+				stack.getCount(),
+				stack.getComponentsPatch(),
+				stack.getComponents()
+		);
+
+		boolean sameItemAsSomeMaterial = false;
+		for (int index = 0; index < snapshot.requiredMaterials().size(); index++) {
+			PasterMaterial material = snapshot.requiredMaterials().get(index);
+			ItemStack sample = material.sample();
+			if (PasterMaterials.matches(stack, sample)) {
+				CarpetWindAddition.LOGGER.info(
+						"CWA DEBUG {}: MATCH required[{}] item={} requiredCount={}",
+						where,
+						index,
+						itemId(sample),
+						material.count()
+				);
+				sameItemAsSomeMaterial = true;
+			} else if (stack.is(sample.getItem())) {
+				CarpetWindAddition.LOGGER.info(
+						"CWA DEBUG {}: NO_MATCH required[{}] item={} reason=COMPONENTS_DIFFER slotPatch={} requiredPatch={} slotComponents={} requiredComponents={}",
+						where,
+						index,
+						itemId(sample),
+						stack.getComponentsPatch(),
+						sample.getComponentsPatch(),
+						stack.getComponents(),
+						sample.getComponents()
+				);
+				sameItemAsSomeMaterial = true;
+			}
+		}
+
+		if (!sameItemAsSomeMaterial) {
+			CarpetWindAddition.LOGGER.info("CWA DEBUG {}: NO_MATCH reason=ITEM_NOT_REQUIRED", where);
+		}
+	}
+
+	private static String itemId(ItemStack stack) {
+		return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
 	}
 
 	private record MaterialLine(ItemStack sample, int total, int stored, int missing, boolean extra) {

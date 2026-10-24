@@ -5,6 +5,7 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -313,19 +314,50 @@ public final class LitematicaBridge {
 	public static @Nullable String fingerprint(Object placement) {
 		try {
 			Object schematic = placementClass.getMethod("getSchematic").invoke(placement);
-			if (schematic == null) {
-				return null;
-			}
-			Object file = schematicClass.getMethod("getFile").invoke(schematic);
-			if (!(file instanceof File schematicFile)) {
-				return null;
-			}
-			byte[] bytes = Files.readAllBytes(schematicFile.toPath());
-			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+			return fingerprintSchematic(schematic);
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to fingerprint the selected Litematica schematic", throwable);
 			return null;
 		}
+	}
+
+	private static @Nullable String fingerprintSchematic(Object schematic) {
+		Path path = schematicPath(schematic);
+		if (path == null) {
+			return null;
+		}
+
+		try {
+			byte[] bytes = Files.readAllBytes(path);
+			return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to fingerprint a Litematica schematic file", throwable);
+			return null;
+		}
+	}
+
+	private static @Nullable Path schematicPath(Object schematic) {
+		if (schematic == null) {
+			return null;
+		}
+
+		try {
+			Object file = schematicClass.getMethod("getFile").invoke(schematic);
+			if (file instanceof Path path) {
+				return path;
+			}
+			if (file instanceof File schematicFile) {
+				return schematicFile.toPath();
+			}
+			return null;
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.debug("Failed to read a Litematica schematic path", throwable);
+			return null;
+		}
+	}
+
+	private static boolean samePath(Path first, Path second) {
+		return first.toAbsolutePath().normalize().equals(second.toAbsolutePath().normalize());
 	}
 
 	private static Object completionListener(Consumer<Boolean> completion) {
@@ -470,8 +502,19 @@ public final class LitematicaBridge {
 		}
 	}
 
-	public static boolean isSchematicUsedByStoredPlacements(Object schematic, Set<String> storedPlacementIds) {
-		if (!isAvailable() || storedPlacementIds.isEmpty()) {
+	public static boolean isSchematicUsedByStoredPlacements(
+			Object schematic,
+			Map<String, String> storedPlacements
+	) {
+		if (!isAvailable() || storedPlacements.isEmpty()) {
+			return false;
+		}
+
+		Path unloadingPath = schematicPath(schematic);
+		String unloadingFingerprint = fingerprintSchematic(schematic);
+		if (unloadingPath == null || unloadingFingerprint == null) {
+			// Without a stable file identity we cannot prove the stored materials
+			// belong to this schematic, so do not block the unload.
 			return false;
 		}
 
@@ -485,15 +528,64 @@ public final class LitematicaBridge {
 
 			for (Object placement : placements) {
 				UUID id = (UUID) getHashId.invoke(placement);
-				if (id != null && storedPlacementIds.contains(id.toString())
-						&& getSchematic.invoke(placement) == schematic) {
-					return true;
+				if (id == null) {
+					continue;
 				}
+
+				String storedFingerprint = storedPlacements.get(id.toString());
+				if (storedFingerprint == null) {
+					continue;
+				}
+
+				Object placementSchematic = getSchematic.invoke(placement);
+				Path placementPath = schematicPath(placementSchematic);
+				if (placementPath == null || !samePath(placementPath, unloadingPath)) {
+					continue;
+				}
+				if (!storedFingerprint.isEmpty() && !storedFingerprint.equals(unloadingFingerprint)) {
+					// Same file path, but the schematic content was replaced since
+					// the materials were collected. The stored materials belong to
+					// the old content and must not block the new one.
+					continue;
+				}
+
+				CarpetWindAddition.LOGGER.info(
+						"Paster protection: placement {} ({}) schematic {} still has stored materials",
+						placementClass.getMethod("getName").invoke(placement),
+						id,
+						unloadingPath
+				);
+				return true;
 			}
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to check whether a Litematica schematic is protected", throwable);
 		}
 		return false;
+	}
+
+	public static @Nullable Set<String> activePlacementIds() {
+		if (!isAvailable()) {
+			return null;
+		}
+
+		try {
+			Object manager = dataManagerClass.getMethod("getSchematicPlacementManager").invoke(null);
+			List<?> placements = (List<?>) manager.getClass()
+					.getMethod("getAllSchematicsPlacements")
+					.invoke(manager);
+			Method getHashId = placementClass.getMethod("getHashId");
+			Set<String> ids = new java.util.HashSet<>();
+			for (Object placement : placements) {
+				UUID id = (UUID) getHashId.invoke(placement);
+				if (id != null) {
+					ids.add(id.toString());
+				}
+			}
+			return Set.copyOf(ids);
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to read the active Litematica placements", throwable);
+			return null;
+		}
 	}
 
 	public static void displayMessage(Component message) {

@@ -1,6 +1,8 @@
 package top.starwindv.cwa.paster;
 
+import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -18,7 +20,22 @@ import org.jetbrains.annotations.Nullable;
 import top.starwindv.cwa.util.SavedDataIO;
 
 public final class PasterData extends SavedData {
-	public static final Codec<PasterData> CODEC = Codec.unboundedMap(Codec.STRING, ItemStack.CODEC.listOf())
+	private static final Codec<Entry> ENTRY_CODEC = RecordCodecBuilder.create(instance -> instance.group(
+			ItemStack.CODEC.listOf().fieldOf("stacks").forGetter(Entry::stacks),
+			Codec.STRING.optionalFieldOf("fingerprint", "").forGetter(Entry::fingerprint)
+	).apply(instance, Entry::new));
+
+	/**
+	 * Older builds stored the entry as a bare ItemStack list. Accept both layouts
+	 * so existing worlds keep their stored materials.
+	 */
+	private static final Codec<Entry> ENTRY_OR_LIST = Codec.either(ItemStack.CODEC.listOf(), ENTRY_CODEC)
+			.xmap(
+					either -> either.map(stacks -> new Entry(stacks, ""), entry -> entry),
+					Either::right
+			);
+
+	public static final Codec<PasterData> CODEC = Codec.unboundedMap(Codec.STRING, ENTRY_OR_LIST)
 			.xmap(PasterData::new, PasterData::entries);
 
 	private static final String DATA_NAME = "cwa_paster_materials";
@@ -28,18 +45,18 @@ public final class PasterData extends SavedData {
 			DataFixTypes.SAVED_DATA_COMMAND_STORAGE
 	);
 
-	private final Map<String, List<ItemStack>> entries;
+	private final Map<String, Entry> entries;
 
 	public PasterData() {
 		this(Map.of());
 	}
 
-	public PasterData(Map<String, List<ItemStack>> entries) {
+	public PasterData(Map<String, Entry> entries) {
 		this.entries = new LinkedHashMap<>();
-		entries.forEach((placement, stacks) -> {
-			List<ItemStack> copied = copyStacks(stacks);
+		entries.forEach((placement, entry) -> {
+			List<ItemStack> copied = copyStacks(entry.stacks());
 			if (!copied.isEmpty()) {
-				this.entries.put(placement, copied);
+				this.entries.put(placement, new Entry(copied, entry.fingerprint()));
 			}
 		});
 	}
@@ -57,30 +74,38 @@ public final class PasterData extends SavedData {
 		return SavedDataIO.save(CODEC, this, registries);
 	}
 
-	public Map<String, List<ItemStack>> entries() {
-		Map<String, List<ItemStack>> copy = new LinkedHashMap<>();
-		entries.forEach((placement, stacks) -> copy.put(placement, copyStacks(stacks)));
+	public Map<String, Entry> entries() {
+		Map<String, Entry> copy = new LinkedHashMap<>();
+		entries.forEach((placement, entry) -> copy.put(
+				placement,
+				new Entry(copyStacks(entry.stacks()), entry.fingerprint())
+		));
 		return Collections.unmodifiableMap(copy);
 	}
 
 	public List<ItemStack> get(UUID playerId, UUID placementId) {
-		List<ItemStack> stored = entries.get(key(playerId, placementId));
-		if (stored == null) {
-			// Older builds stored only the placement UUID. Keep those worlds readable;
-			// the next set() migrates the entry to the player-scoped key.
-			stored = entries.get(placementId.toString());
-		}
-		return copyStacks(stored);
+		Entry stored = getEntry(playerId, placementId);
+		return copyStacks(stored == null ? null : stored.stacks());
+	}
+
+	public String fingerprint(UUID playerId, UUID placementId) {
+		Entry stored = getEntry(playerId, placementId);
+		return stored == null ? "" : stored.fingerprint();
 	}
 
 	public void set(UUID playerId, UUID placementId, List<ItemStack> stacks) {
+		set(playerId, placementId, stacks, fingerprint(playerId, placementId));
+	}
+
+	public void set(UUID playerId, UUID placementId, List<ItemStack> stacks, String fingerprint) {
 		String key = key(playerId, placementId);
 		List<ItemStack> copied = copyStacks(stacks);
+		String normalizedFingerprint = fingerprint == null ? "" : fingerprint;
 		boolean changed = entries.remove(placementId.toString()) != null;
 		if (copied.isEmpty()) {
 			changed |= entries.remove(key) != null;
 		} else {
-			entries.put(key, copied);
+			entries.put(key, new Entry(copied, normalizedFingerprint));
 			changed = true;
 		}
 		if (changed) {
@@ -98,6 +123,22 @@ public final class PasterData extends SavedData {
 			ids.add(placementIdFromKey(key));
 		}
 		return Set.copyOf(ids);
+	}
+
+	public Map<String, String> fingerprints() {
+		Map<String, String> fingerprints = new LinkedHashMap<>();
+		entries.forEach((key, entry) -> fingerprints.put(placementIdFromKey(key), entry.fingerprint()));
+		return Collections.unmodifiableMap(fingerprints);
+	}
+
+	private @Nullable Entry getEntry(UUID playerId, UUID placementId) {
+		Entry stored = entries.get(key(playerId, placementId));
+		if (stored == null) {
+			// Older builds stored only the placement UUID. Keep those worlds readable;
+			// the next set() migrates the entry to the player-scoped key.
+			stored = entries.get(placementId.toString());
+		}
+		return stored;
 	}
 
 	private static String key(UUID playerId, UUID placementId) {
@@ -121,5 +162,12 @@ public final class PasterData extends SavedData {
 			}
 		}
 		return copy;
+	}
+
+	public record Entry(List<ItemStack> stacks, String fingerprint) {
+		public Entry {
+			stacks = List.copyOf(stacks);
+			fingerprint = fingerprint == null ? "" : fingerprint;
+		}
 	}
 }
