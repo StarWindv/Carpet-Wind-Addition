@@ -18,6 +18,7 @@
 		"HotTNTMixin",
 		"PistonBaseBlockMixin",
 		"QuickIceToWaterMixin",
+		"QuickPlaceObsidianMixin",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin",
 		"ShapelessRecipeAccessor",

@@ -1,6 +1,6 @@
 package top.starwindv.cwa.paster;
 
-import java.util.Set;
+import java.util.Map;
 import net.minecraft.network.chat.Component;
 
 public final class PasterProtection {
@@ -8,8 +8,8 @@ public final class PasterProtection {
 	}
 
 	public static boolean shouldBlockSchematicUnload(Object schematic) {
-		Set<String> placementIds = PasterManager.protectedPlacementIds();
-		return !placementIds.isEmpty() && LitematicaBridge.isSchematicUsedByStoredPlacements(schematic, placementIds);
+		Map<String, String> placements = PasterManager.protectedPlacements();
+		return !placements.isEmpty() && LitematicaBridge.isSchematicUsedByStoredPlacements(schematic, placements);
 	}
 
 	public static void notifyUnloadBlocked() {

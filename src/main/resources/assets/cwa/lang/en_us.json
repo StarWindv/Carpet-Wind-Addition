@@ -82,6 +82,8 @@
 	"carpet.rule.QuickIceToWater.desc": "When one hand holds a pickaxe and the other holds ice, placing the ice directly places water, consumes one ice, and damages the pickaxe. Silk Touch disables this.",
 	"carpet.rule.QuickITWCheck.name": "Quick Ice to Water Check",
 	"carpet.rule.QuickITWCheck.desc": "Requires the pickaxe name to contain \"_water\" for Quick Ice to Water to trigger.",
+	"carpet.rule.QuickPlaceObsidian.name": "Quick Place Obsidian",
+	"carpet.rule.QuickPlaceObsidian.desc": "When holding a lava bucket in the main hand and a water bucket in the offhand, right-clicking places obsidian and consumes one lava bucket. The water bucket is not consumed.",
 	"carpet.rule.HotTNT.name": "Hot TNT",
 	"carpet.rule.HotTNT.desc": "TNT explosion drops are automatically smelted when the dropped item has a furnace recipe. Compatible with Carpet-TIS tooledTNT.",
 	"carpet.rule.WaterproofRedstoneComponents.name": "Waterproof Redstone Components",
