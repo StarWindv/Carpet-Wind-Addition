@@ -16,6 +16,7 @@ public final class CwaSettings {
 	public static final String STACK_ANYTHING = "StackAnything";
 	public static final String MAX_STACK_ANYTHING_SIZE = "MaxStackAnythingSize";
 	public static final String MOBS_NO_EQUIPMENT_DROP = "MobsNoEquipmentDrop";
+	public static final String MOBS_NO_SPEAR = "MobsNoSpear";
 	public static final String BUCKET_TANS_OSIDIAN_TO_LAVA = "BucketTansOsidianToLava";
 	public static final String OBSIDIAN_TO_LAVA_RECIPE = "ObsidianToLavaRecipe";
 	public static final String QUICK_ICE_TO_WATER = "QuickIceToWater";
@@ -48,6 +49,9 @@ public final class CwaSettings {
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean MobsNoEquipmentDrop = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean MobsNoSpear = false;
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean BucketTansOsidianToLava = false;

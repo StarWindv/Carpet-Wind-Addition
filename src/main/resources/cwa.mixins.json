@@ -4,6 +4,7 @@
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
 		"AbstractFurnaceBlockEntityMixin",
+		"AnvilMenuMixin",
 		"BlockStateBaseMixin",
 		"BucketItemMixin",
 		"CommandsMixin",
@@ -15,6 +16,7 @@
 		"ItemStackTemplateCodecLimitMixin",
 		"ItemStackDurabilityMixin",
 		"MobEquipmentDropMixin",
+		"MobsNoSpearMixin",
 		"HotTNTMixin",
 		"PistonBaseBlockMixin",
 		"QuickIceToWaterMixin",
