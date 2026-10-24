@@ -18,7 +18,9 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -34,6 +36,8 @@ public final class LitematicaBridge {
 	private static final String REQUIRED_ENABLED = "fi.dy.masa.litematica.schematic.placement.SubRegionPlacement$RequiredEnabled";
 	private static final String MATERIAL_UTILS = "fi.dy.masa.litematica.materials.MaterialListUtils";
 	private static final String MATERIAL_ENTRY = "fi.dy.masa.litematica.materials.MaterialListEntry";
+	private static final String INVENTORY_UTILS = "fi.dy.masa.malilib.util.InventoryUtils";
+	private static final String COMPOUND_DATA = "fi.dy.masa.malilib.util.data.tag.CompoundData";
 	private static final String BLOCK_CONTAINER = "fi.dy.masa.litematica.schematic.container.LitematicaBlockStateContainer";
 	private static final String TASK_SCHEDULER = "fi.dy.masa.litematica.scheduler.TaskScheduler";
 	private static final String TASK_INTERFACE = "fi.dy.masa.litematica.scheduler.ITask";
@@ -53,6 +57,8 @@ public final class LitematicaBridge {
 	private static Class<?> requiredEnabledClass;
 	private static Class<?> materialUtilsClass;
 	private static Class<?> materialEntryClass;
+	private static Class<?> inventoryUtilsClass;
+	private static Class<?> compoundDataClass;
 	private static Class<?> blockContainerClass;
 	private static Class<?> taskSchedulerClass;
 	private static Class<?> taskInterfaceClass;
@@ -89,6 +95,8 @@ public final class LitematicaBridge {
 			requiredEnabledClass = Class.forName(REQUIRED_ENABLED);
 			materialUtilsClass = Class.forName(MATERIAL_UTILS);
 			materialEntryClass = Class.forName(MATERIAL_ENTRY);
+			inventoryUtilsClass = Class.forName(INVENTORY_UTILS);
+			compoundDataClass = Class.forName(COMPOUND_DATA);
 			blockContainerClass = Class.forName(BLOCK_CONTAINER);
 			taskSchedulerClass = Class.forName(TASK_SCHEDULER);
 			taskInterfaceClass = Class.forName(TASK_INTERFACE);
@@ -168,6 +176,7 @@ public final class LitematicaBridge {
 					mergeRequired(required, stack, count);
 				}
 			}
+			mergeContainerContents(required, schematic, regions);
 
 			UUID id = (UUID) placementClass.getMethod("getHashId").invoke(placement);
 			String name = (String) placementClass.getMethod("getName").invoke(placement);
@@ -297,6 +306,61 @@ public final class LitematicaBridge {
 						new Object2IntOpenHashMap<>(),
 						null
 				);
+	}
+
+	private static void mergeContainerContents(
+			List<PasterMaterial> required,
+			Object schematic,
+			List<String> regions
+	) {
+		try {
+			Method getBlockEntities = schematicClass.getMethod("getBlockEntityMapForRegion", String.class);
+			Method getNbtInventory = null;
+			Method getDataInventory = null;
+			try {
+				getNbtInventory = inventoryUtilsClass.getMethod("getNbtInventory", CompoundTag.class);
+			} catch (NoSuchMethodException ignored) {
+			}
+			try {
+				getDataInventory = inventoryUtilsClass.getMethod("getDataInventory", compoundDataClass);
+			} catch (NoSuchMethodException ignored) {
+			}
+
+			for (String region : regions) {
+				Object blockEntities = getBlockEntities.invoke(schematic, region);
+				if (!(blockEntities instanceof Map<?, ?> map)) {
+					continue;
+				}
+
+				for (Object data : map.values()) {
+					try {
+						Container container = null;
+						if (data instanceof CompoundTag && getNbtInventory != null) {
+							container = (Container) getNbtInventory.invoke(null, data);
+						} else if (getDataInventory != null && compoundDataClass.isInstance(data)) {
+							container = (Container) getDataInventory.invoke(null, data);
+						}
+						if (container == null) {
+							continue;
+						}
+
+						for (int slot = 0; slot < container.getContainerSize(); slot++) {
+							ItemStack stack = container.getItem(slot);
+							if (!stack.isEmpty()) {
+								mergeRequired(required, stack, stack.getCount());
+							}
+						}
+					} catch (Throwable throwable) {
+						CarpetWindAddition.LOGGER.debug(
+								"Failed to read container contents from a paster block entity",
+								throwable
+						);
+					}
+				}
+			}
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to read container contents for the paster", throwable);
+		}
 	}
 
 	private static void mergeRequired(List<PasterMaterial> required, ItemStack stack, int count) {
