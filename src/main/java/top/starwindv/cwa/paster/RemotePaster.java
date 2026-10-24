@@ -35,8 +35,50 @@ public final class RemotePaster {
 		}
 
 		UUID requestId = UUID.randomUUID();
-		PENDING.put(player.getUUID(), new Pending(requestId, action, page, start, end));
-		if (!PasterNetworking.sendRequest(player, new PasterRequestPayload(requestId, action, page, start, end))) {
+		PENDING.put(player.getUUID(), new Pending(requestId, action, page, start, end, null));
+		if (!PasterNetworking.sendRequest(player, new PasterRequestPayload(
+				requestId,
+				action,
+				page,
+				start,
+				end,
+				null,
+				null
+		))) {
+			PENDING.remove(player.getUUID());
+			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.failed"));
+			return 0;
+		}
+
+		source.sendSuccess(() -> CwaMessages.translatable("cwa.paster.requesting"), false);
+		return 1;
+	}
+
+	public static int requestDiscard(CommandSourceStack source, PasterDiscardRule rule) {
+		ServerPlayer player = source.getPlayer();
+		if (player == null) {
+			source.sendFailure(CwaMessages.translatable("cwa.paster.no_projection"));
+			return 0;
+		}
+
+		UUID requestId = UUID.randomUUID();
+		PENDING.put(player.getUUID(), new Pending(
+				requestId,
+				PasterAction.DISCARD,
+				0,
+				null,
+				null,
+				rule
+		));
+		if (!PasterNetworking.sendRequest(player, new PasterRequestPayload(
+				requestId,
+				PasterAction.DISCARD,
+				0,
+				null,
+				null,
+				rule.containerId(),
+				rule.itemId()
+		))) {
 			PENDING.remove(player.getUUID());
 			source.sendFailure(CwaMessages.translatable("cwa.paster.paste.failed"));
 			return 0;
@@ -71,6 +113,7 @@ public final class RemotePaster {
 				payload.dimension(),
 				payload.requiredMaterials(),
 				payload.bounds(),
+				payload.discardRules(),
 				payload.fingerprint()
 		);
 		PasterSnapshotData data = PasterSnapshotData.getOrCreate(player.level().getServer());
@@ -84,6 +127,10 @@ public final class RemotePaster {
 			}
 			if (!stored.fingerprint().equals(incoming.fingerprint())) {
 				source.sendFailure(CwaMessages.translatable("cwa.paster.schematic_changed"));
+				return;
+			}
+			if (!stored.discardRules().equals(incoming.discardRules())) {
+				source.sendFailure(CwaMessages.translatable("cwa.paster.discard.changed"));
 				return;
 			}
 
@@ -100,11 +147,13 @@ public final class RemotePaster {
 					incoming.dimension(),
 					stored.requiredMaterials(),
 					incoming.bounds(),
+					incoming.discardRules(),
 					stored.fingerprint()
 			);
 			data.set(player.getUUID(), payload.placementId(), stored);
 		} else if (pending.action == PasterAction.COLLECT_SELF
-				|| pending.action == PasterAction.COLLECT_RANGE) {
+				|| pending.action == PasterAction.COLLECT_RANGE
+				|| pending.action == PasterAction.DISCARD) {
 			data.set(player.getUUID(), payload.placementId(), incoming);
 			stored = incoming;
 		} else if (stored == null) {
@@ -137,6 +186,16 @@ public final class RemotePaster {
 				PasterCommand.sendCollectResult(source, result);
 			}
 			case LIST -> PasterCommand.sendMaterialList(source, player, snapshot, pending.page);
+			case DISCARD -> {
+				PasterDiscardRule rule = pending.discardRule;
+				if (rule != null) {
+					source.sendSuccess(() -> CwaMessages.translatable(
+							"cwa.paster.discard.added",
+							rule.itemId(),
+							rule.containerId()
+					), false);
+				}
+			}
 			case PASTE -> {
 				PasterManager.startPaste(source, player, snapshot);
 			}
@@ -173,7 +232,8 @@ public final class RemotePaster {
 			PasterAction action,
 			int page,
 			@Nullable BlockPos start,
-			@Nullable BlockPos end
+			@Nullable BlockPos end,
+			@Nullable PasterDiscardRule discardRule
 	) {
 	}
 }

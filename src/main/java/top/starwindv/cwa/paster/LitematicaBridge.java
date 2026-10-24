@@ -19,6 +19,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
@@ -168,6 +169,8 @@ public final class LitematicaBridge {
 				return null;
 			}
 
+			UUID id = (UUID) placementClass.getMethod("getHashId").invoke(placement);
+			List<PasterDiscardRule> discardRules = PasterDiscardRules.get(id);
 			List<?> entries = materialEntries(schematic, regions);
 			List<PasterMaterial> required = new ArrayList<>();
 			for (Object entry : entries) {
@@ -177,9 +180,8 @@ public final class LitematicaBridge {
 					mergeRequired(required, stack, count);
 				}
 			}
-			mergeContainerContents(required, schematic, regions);
+			mergeContainerContents(required, schematic, regions, discardRules);
 
-			UUID id = (UUID) placementClass.getMethod("getHashId").invoke(placement);
 			String name = (String) placementClass.getMethod("getName").invoke(placement);
 			if (name == null) {
 				name = "";
@@ -193,10 +195,26 @@ public final class LitematicaBridge {
 					placement,
 					List.copyOf(required),
 					List.copyOf(bounds),
-					fingerprint == null ? "" : fingerprint
+					fingerprint == null ? "" : fingerprint,
+					discardRules
 			);
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to read the current Litematica placement", throwable);
+			return null;
+		}
+	}
+
+	public static @Nullable UUID currentPlacementId() {
+		if (!isAvailable()) {
+			return null;
+		}
+
+		try {
+			Object manager = dataManagerClass.getMethod("getSchematicPlacementManager").invoke(null);
+			Object placement = manager.getClass().getMethod("getSelectedSchematicPlacement").invoke(manager);
+			return placement == null ? null : (UUID) placementClass.getMethod("getHashId").invoke(placement);
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to read the current Litematica placement id", throwable);
 			return null;
 		}
 	}
@@ -312,10 +330,18 @@ public final class LitematicaBridge {
 	private static void mergeContainerContents(
 			List<PasterMaterial> required,
 			Object schematic,
-			List<String> regions
+			List<String> regions,
+			List<PasterDiscardRule> discardRules
 	) {
 		try {
 			Method getBlockEntities = schematicClass.getMethod("getBlockEntityMapForRegion", String.class);
+			Method getRegionContainer = null;
+			Method getBlockState = null;
+			try {
+				getRegionContainer = schematicClass.getMethod("getSubRegionContainer", String.class);
+				getBlockState = blockContainerClass.getMethod("get", int.class, int.class, int.class);
+			} catch (NoSuchMethodException ignored) {
+			}
 			Method getNbtInventory = null;
 			Method getDataInventory = null;
 			try {
@@ -333,8 +359,44 @@ public final class LitematicaBridge {
 					continue;
 				}
 
-				for (Object data : map.values()) {
+				Object regionContainer = null;
+				if (getRegionContainer != null) {
 					try {
+						regionContainer = getRegionContainer.invoke(schematic, region);
+					} catch (Throwable ignored) {
+					}
+				}
+
+				for (Map.Entry<?, ?> entry : map.entrySet()) {
+					Object data = entry.getValue();
+					try {
+						String blockEntityId = "";
+						String blockId = "";
+						if (!discardRules.isEmpty()) {
+							blockEntityId = dataString(data, "id");
+						}
+						if (!discardRules.isEmpty()
+								&& regionContainer != null
+								&& getBlockState != null
+								&& entry.getKey() instanceof BlockPos pos) {
+							try {
+								BlockState state = (BlockState) getBlockState.invoke(
+										regionContainer,
+										pos.getX(),
+										pos.getY(),
+										pos.getZ()
+								);
+								if (state != null) {
+									blockId = BuiltInRegistries.BLOCK
+											.getKey(state.getBlock())
+											.toString();
+								}
+							} catch (Throwable ignored) {
+							}
+						}
+
+						List<PasterDiscardRule> containerRules =
+								matchingContainerRules(discardRules, blockEntityId, blockId);
 						Container container = null;
 						if (data instanceof CompoundTag && getNbtInventory != null) {
 							container = (Container) getNbtInventory.invoke(null, data);
@@ -347,9 +409,10 @@ public final class LitematicaBridge {
 
 						for (int slot = 0; slot < container.getContainerSize(); slot++) {
 							ItemStack stack = container.getItem(slot);
-							if (!stack.isEmpty()) {
-								mergeRequired(required, stack, stack.getCount());
+							if (stack.isEmpty() || isDiscarded(containerRules, stack)) {
+								continue;
 							}
+							mergeRequired(required, stack, stack.getCount());
 						}
 					} catch (Throwable throwable) {
 						CarpetWindAddition.LOGGER.debug(
@@ -361,6 +424,45 @@ public final class LitematicaBridge {
 			}
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to read container contents for the paster", throwable);
+		}
+	}
+
+	private static List<PasterDiscardRule> matchingContainerRules(
+			List<PasterDiscardRule> rules,
+			String blockEntityId,
+			String blockId
+	) {
+		if (rules.isEmpty()) {
+			return List.of();
+		}
+
+		List<PasterDiscardRule> matching = new ArrayList<>();
+		for (PasterDiscardRule rule : rules) {
+			if (rule.matchesContainer(blockEntityId, blockId)) {
+				matching.add(rule);
+			}
+		}
+		return matching;
+	}
+
+	private static boolean isDiscarded(List<PasterDiscardRule> rules, ItemStack stack) {
+		for (PasterDiscardRule rule : rules) {
+			if (rule.matchesItem(stack)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String dataString(Object data, String key) {
+		try {
+			Object value = data.getClass().getMethod("getString", String.class).invoke(data, key);
+			if (value instanceof java.util.Optional<?> optional) {
+				return optional.map(String::valueOf).orElse("");
+			}
+			return value instanceof String string ? string : "";
+		} catch (Throwable throwable) {
+			return "";
 		}
 	}
 

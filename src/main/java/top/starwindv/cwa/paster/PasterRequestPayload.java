@@ -13,7 +13,9 @@ public record PasterRequestPayload(
 		PasterAction action,
 		int page,
 		@Nullable BlockPos start,
-		@Nullable BlockPos end
+		@Nullable BlockPos end,
+		@Nullable String containerId,
+		@Nullable String itemId
 ) implements CustomPacketPayload {
 	public static final Type<PasterRequestPayload> TYPE =
 			new Type<>(CarpetWindAddition.id("paster_request"));
@@ -31,13 +33,23 @@ public record PasterRequestPayload(
 				if (payload.end != null) {
 					buffer.writeBlockPos(payload.end);
 				}
+				buffer.writeBoolean(payload.containerId != null);
+				if (payload.containerId != null) {
+					buffer.writeUtf(payload.containerId);
+				}
+				buffer.writeBoolean(payload.itemId != null);
+				if (payload.itemId != null) {
+					buffer.writeUtf(payload.itemId);
+				}
 			},
 			buffer -> new PasterRequestPayload(
 					buffer.readUUID(),
 					PasterAction.valueOf(buffer.readUtf()),
 					buffer.readVarInt(),
 					buffer.readBoolean() ? buffer.readBlockPos() : null,
-					buffer.readBoolean() ? buffer.readBlockPos() : null
+					buffer.readBoolean() ? buffer.readBlockPos() : null,
+					buffer.readBoolean() ? buffer.readUtf() : null,
+					buffer.readBoolean() ? buffer.readUtf() : null
 			)
 	);
 
