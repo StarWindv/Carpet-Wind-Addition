@@ -73,7 +73,7 @@
 	"carpet.rule.MaxStackAnythingSize.name": "Max Stack Anything Size",
 	"carpet.rule.MaxStackAnythingSize.desc": "Limits the max stack size that /stack can set. Defaults to 64.",
 	"carpet.rule.MobsNoEquipmentDrop.name": "Mobs No Equipment Drop",
-	"carpet.rule.MobsNoEquipmentDrop.desc": "Prevents naturally spawned mob equipment from dropping. Equipment picked up by mobs still drops normally.",
+	"carpet.rule.MobsNoEquipmentDrop.desc": "Prevents naturally spawned mob equipment from dropping.",
 	"carpet.rule.BucketTansOsidianToLava.name": "Bucket Turns Obsidian To Lava",
 	"carpet.rule.BucketTansOsidianToLava.desc": "Using an empty bucket on placed obsidian converts it into a lava bucket.",
 	"carpet.rule.ObsidianToLavaRecipe.name": "Obsidian To Lava Recipe",
@@ -99,7 +99,7 @@
 	"carpet.rule.LitematicaPaster.name": "Litematica Paster",
 	"carpet.rule.LitematicaPaster.desc": "Enables the /paster command for collecting, pasting, and returning materials for the currently selected Litematica placement.",
 	"carpet.rule.NeverFull.name": "Never Full",
-	"carpet.rule.NeverFull.desc": "Allows players to eat food even when their hunger bar is full, including food effects and saturation.",
+	"carpet.rule.NeverFull.desc": "Allows players to eat food even when their hunger bar is full.",
 	"carpet.rule.PistonHarvestAmethyst.name": "Piston Harvest Amethyst",
 	"carpet.rule.PistonHarvestAmethyst.desc": "Makes pistons drop the amethyst cluster item instead of amethyst shards when they destroy an amethyst cluster."
 }

@@ -73,7 +73,7 @@
 	"carpet.rule.MaxStackAnythingSize.name": "堆叠上限最大值",
 	"carpet.rule.MaxStackAnythingSize.desc": "限制 /stack 可设置的堆叠上限范围, 默认 64。",
 	"carpet.rule.MobsNoEquipmentDrop.name": "怪物装备不掉落",
-	"carpet.rule.MobsNoEquipmentDrop.desc": "自然生成或生成的怪物装备不再掉落；怪物捡到的物品仍按原版流程掉落。",
+	"carpet.rule.MobsNoEquipmentDrop.desc": "自然生成或生成的怪物装备不再掉落。",
 	"carpet.rule.BucketTansOsidianToLava.name": "空桶转化黑曜石为岩浆",
 	"carpet.rule.BucketTansOsidianToLava.desc": "手持空桶右键已放置的黑曜石，将其转化为岩浆桶。",
 	"carpet.rule.ObsidianToLavaRecipe.name": "黑曜石转岩浆配方",
@@ -99,7 +99,7 @@
 	"carpet.rule.LitematicaPaster.name": "投影粘贴机",
 	"carpet.rule.LitematicaPaster.desc": "增强投影打印机, 使其获得生存模式下可用的粘贴功能",
 	"carpet.rule.NeverFull.name": "吃不停",
-	"carpet.rule.NeverFull.desc": "允许玩家在饥饿值已满时继续进食，并正常获得食物效果和饱和度。",
+	"carpet.rule.NeverFull.desc": "允许玩家在饥饿值已满时继续进食。",
 	"carpet.rule.PistonHarvestAmethyst.name": "活塞采集紫水晶簇",
 	"carpet.rule.PistonHarvestAmethyst.desc": "活塞破坏紫水晶簇时，改为掉落紫水晶簇物品，而不是紫水晶碎片。"
 }
