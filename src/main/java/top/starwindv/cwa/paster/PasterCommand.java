@@ -8,21 +8,25 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
 import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.allow.AllowManager;
 
@@ -54,6 +58,11 @@ public final class PasterCommand {
 						.then(Commands.argument("start", BlockPosArgument.blockPos())
 								.then(Commands.argument("end", BlockPosArgument.blockPos())
 										.executes(PasterCommand::returnRange))))
+				.then(Commands.literal("discard")
+						.then(Commands.literal("in")
+								.then(Commands.argument("container", IdentifierArgument.id())
+										.then(Commands.argument("item", IdentifierArgument.id())
+												.executes(PasterCommand::discardIn)))))
 				.then(Commands.literal("debug")
 						.then(Commands.literal("backpack_info")
 								.executes(PasterCommand::debugBackpackInfo))
@@ -615,6 +624,123 @@ public final class PasterCommand {
 			return null;
 		}
 		return snapshot;
+	}
+
+	private static int discardIn(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		Identifier containerId = resolveContainerId(
+				source,
+				IdentifierArgument.getId(context, "container")
+		);
+		if (containerId == null) {
+			return 0;
+		}
+		Identifier itemId = resolveItemId(source, IdentifierArgument.getId(context, "item"));
+		if (itemId == null) {
+			return 0;
+		}
+
+		PasterDiscardRule rule = new PasterDiscardRule(containerId.toString(), itemId.toString());
+		if (useRemote(source)) {
+			return RemotePaster.requestDiscard(source, rule);
+		}
+
+		source.getPlayerOrException();
+		UUID placementId = LitematicaBridge.currentPlacementId();
+		if (placementId == null) {
+			source.sendFailure(Component.translatable("cwa.paster.no_projection"));
+			return 0;
+		}
+
+		PasterDiscardRules.add(placementId, rule);
+		source.sendSuccess(() -> Component.translatable(
+				"cwa.paster.discard.added",
+				itemId.toString(),
+				containerId.toString()
+		), false);
+		return 1;
+	}
+
+	private static @Nullable Identifier resolveContainerId(CommandSourceStack source, Identifier parsedId) {
+		if (BuiltInRegistries.BLOCK.containsKey(parsedId)
+				|| BuiltInRegistries.BLOCK_ENTITY_TYPE.containsKey(parsedId)) {
+			return parsedId;
+		}
+
+		List<Identifier> blockMatches = matchingIds(BuiltInRegistries.BLOCK.keySet(), parsedId);
+		if (blockMatches.size() > 1) {
+			source.sendFailure(Component.translatable(
+					"cwa.paster.discard.ambiguous_container",
+					formatIds(blockMatches)
+			));
+			return null;
+		}
+		if (blockMatches.size() == 1) {
+			return blockMatches.get(0);
+		}
+
+		List<Identifier> typeMatches = matchingIds(BuiltInRegistries.BLOCK_ENTITY_TYPE.keySet(), parsedId);
+		if (typeMatches.size() > 1) {
+			source.sendFailure(Component.translatable(
+					"cwa.paster.discard.ambiguous_container",
+					formatIds(typeMatches)
+			));
+			return null;
+		}
+		if (typeMatches.size() == 1) {
+			return typeMatches.get(0);
+		}
+
+		source.sendFailure(Component.translatable(
+				"cwa.paster.discard.unknown_container",
+				parsedId.toString()
+		));
+		return null;
+	}
+
+	private static @Nullable Identifier resolveItemId(CommandSourceStack source, Identifier parsedId) {
+		if (BuiltInRegistries.ITEM.containsKey(parsedId)) {
+			return parsedId;
+		}
+
+		List<Identifier> matches = matchingIds(BuiltInRegistries.ITEM.keySet(), parsedId);
+		if (matches.size() > 1) {
+			source.sendFailure(Component.translatable(
+					"cwa.paster.discard.ambiguous_item",
+					formatIds(matches)
+			));
+			return null;
+		}
+		if (matches.size() == 1) {
+			return matches.get(0);
+		}
+
+		source.sendFailure(Component.translatable(
+				"cwa.paster.discard.unknown_item",
+				parsedId.toString()
+		));
+		return null;
+	}
+
+	private static List<Identifier> matchingIds(Set<Identifier> ids, Identifier parsedId) {
+		List<Identifier> matches = new ArrayList<>();
+		for (Identifier id : ids) {
+			if (id.getPath().equals(parsedId.getPath())) {
+				matches.add(id);
+			}
+		}
+		return matches;
+	}
+
+	private static String formatIds(List<Identifier> ids) {
+		StringBuilder builder = new StringBuilder();
+		for (Identifier id : ids) {
+			if (builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(id);
+		}
+		return builder.toString();
 	}
 
 	private static int debugBackpackInfo(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

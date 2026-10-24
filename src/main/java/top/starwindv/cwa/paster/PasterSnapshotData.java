@@ -47,6 +47,9 @@ public final class PasterSnapshotData extends SavedData {
 			Codec.STRING.fieldOf("dimension").forGetter(StoredSnapshot::dimension),
 			MATERIAL_CODEC.listOf().fieldOf("required").forGetter(StoredSnapshot::requiredMaterials),
 			BOUNDS_CODEC.listOf().fieldOf("bounds").forGetter(StoredSnapshot::bounds),
+			PasterDiscardRule.CODEC.listOf()
+					.optionalFieldOf("discard", List.of())
+					.forGetter(StoredSnapshot::discardRules),
 			Codec.STRING.fieldOf("fingerprint").forGetter(StoredSnapshot::fingerprint)
 	).apply(instance, StoredSnapshot::new));
 
@@ -100,15 +103,26 @@ public final class PasterSnapshotData extends SavedData {
 			String dimension,
 			List<PasterMaterial> requiredMaterials,
 			List<PasterBounds> bounds,
+			List<PasterDiscardRule> discardRules,
 			String fingerprint
 	) {
 		public StoredSnapshot {
 			requiredMaterials = List.copyOf(requiredMaterials);
 			bounds = List.copyOf(bounds);
+			discardRules = List.copyOf(discardRules);
 		}
 
 		public PlacementSnapshot toPlacementSnapshot(UUID id) {
-			return new PlacementSnapshot(id, name, dimension, null, requiredMaterials, bounds, fingerprint);
+			return new PlacementSnapshot(
+					id,
+					name,
+					dimension,
+					null,
+					requiredMaterials,
+					bounds,
+					fingerprint,
+					discardRules
+			);
 		}
 	}
 }

@@ -6,5 +6,6 @@ public enum PasterAction {
 	LIST,
 	PASTE,
 	RETURN_SELF,
-	RETURN_RANGE
+	RETURN_RANGE,
+	DISCARD
 }

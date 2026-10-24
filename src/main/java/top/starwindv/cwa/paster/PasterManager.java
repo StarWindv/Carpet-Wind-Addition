@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -625,6 +626,7 @@ public final class PasterManager {
 				snapshot.id(),
 				snapshot.requiredMaterials(),
 				snapshot.bounds(),
+				snapshot.discardRules(),
 				level,
 				temporaryRegions,
 				server.getTickCount(),
@@ -793,6 +795,7 @@ public final class PasterManager {
 		}
 
 		if (success) {
+			discardContainerItems(session.level, session.bounds, session.discardRules);
 			consumePastedMaterials(server, session.playerId, session.placementId, session.consumedMaterials);
 		}
 
@@ -801,6 +804,63 @@ public final class PasterManager {
 			player.sendSystemMessage(Component.translatable(
 					success ? "cwa.paster.paste.finished" : "cwa.paster.paste.failed"
 			));
+		}
+	}
+
+	private static void discardContainerItems(
+			ServerLevel level,
+			List<PasterBounds> bounds,
+			List<PasterDiscardRule> discardRules
+	) {
+		if (discardRules.isEmpty()) {
+			return;
+		}
+
+		try {
+			for (PasterBounds bound : bounds) {
+				for (BlockPos pos : BlockPos.betweenClosed(bound.start(), bound.end())) {
+					BlockEntity blockEntity = level.getBlockEntity(pos);
+					if (blockEntity == null) {
+						continue;
+					}
+
+					String blockId = BuiltInRegistries.BLOCK
+							.getKey(level.getBlockState(pos).getBlock())
+							.toString();
+					String blockEntityId = String.valueOf(
+							BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType())
+					);
+					List<PasterDiscardRule> matchingRules = new ArrayList<>();
+					for (PasterDiscardRule rule : discardRules) {
+						if (rule.matchesContainer(blockEntityId, blockId)) {
+							matchingRules.add(rule);
+						}
+					}
+					if (matchingRules.isEmpty() || !(blockEntity instanceof Container container)) {
+						continue;
+					}
+
+					boolean changed = false;
+					for (int slot = 0; slot < container.getContainerSize(); slot++) {
+						ItemStack stack = container.getItem(slot);
+						if (stack.isEmpty()) {
+							continue;
+						}
+						for (PasterDiscardRule rule : matchingRules) {
+							if (rule.matchesItem(stack)) {
+								container.setItem(slot, ItemStack.EMPTY);
+								changed = true;
+								break;
+							}
+						}
+					}
+					if (changed) {
+						container.setChanged();
+					}
+				}
+			}
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.warn("Failed to discard ignored container items after a paster paste", throwable);
 		}
 	}
 
@@ -884,6 +944,7 @@ public final class PasterManager {
 		private final UUID placementId;
 		private final List<PasterMaterial> consumedMaterials;
 		private final List<PasterBounds> bounds;
+		private final List<PasterDiscardRule> discardRules;
 		private final ServerLevel level;
 		private final List<NoUpdateManager.TemporaryRegion> temporaryRegions;
 		private final int startTick;
@@ -900,6 +961,7 @@ public final class PasterManager {
 				UUID placementId,
 				List<PasterMaterial> consumedMaterials,
 				List<PasterBounds> bounds,
+				List<PasterDiscardRule> discardRules,
 				ServerLevel level,
 				List<NoUpdateManager.TemporaryRegion> temporaryRegions,
 				int startTick,
@@ -910,6 +972,7 @@ public final class PasterManager {
 			this.placementId = placementId;
 			this.consumedMaterials = List.copyOf(consumedMaterials);
 			this.bounds = List.copyOf(bounds);
+			this.discardRules = List.copyOf(discardRules);
 			this.level = level;
 			this.temporaryRegions = temporaryRegions;
 			this.startTick = startTick;

@@ -11,18 +11,25 @@ public final class PasterClient {
 	}
 
 	public static void handleRequest(PasterRequestPayload request) {
+		if (request.action() == PasterAction.DISCARD) {
+			if (request.containerId() == null || request.itemId() == null) {
+				sendSnapshotError(request.requestId(), "no_projection");
+				return;
+			}
+			UUID placementId = LitematicaBridge.currentPlacementId();
+			if (placementId == null) {
+				sendSnapshotError(request.requestId(), "no_projection");
+				return;
+			}
+			PasterDiscardRules.add(
+					placementId,
+					new PasterDiscardRule(request.containerId(), request.itemId())
+			);
+		}
+
 		PlacementSnapshot snapshot = LitematicaBridge.currentPlacement();
 		if (snapshot == null) {
-			PasterNetworking.sendSnapshot(new PasterSnapshotPayload(
-					request.requestId(),
-					new UUID(0L, 0L),
-					"",
-					"",
-					List.of(),
-					List.of(),
-					"",
-					"no_projection"
-			));
+			sendSnapshotError(request.requestId(), "no_projection");
 			return;
 		}
 
@@ -35,6 +42,7 @@ public final class PasterClient {
 					snapshot.dimension(),
 					List.of(),
 					List.of(),
+					snapshot.discardRules(),
 					"",
 					"fingerprint_unavailable"
 			));
@@ -48,8 +56,23 @@ public final class PasterClient {
 				snapshot.dimension(),
 				snapshot.requiredMaterials(),
 				snapshot.bounds(),
+				snapshot.discardRules(),
 				fingerprint,
 				""
+		));
+	}
+
+	private static void sendSnapshotError(UUID requestId, String error) {
+		PasterNetworking.sendSnapshot(new PasterSnapshotPayload(
+				requestId,
+				new UUID(0L, 0L),
+				"",
+				"",
+				List.of(),
+				List.of(),
+				List.of(),
+				"",
+				error
 		));
 	}
 

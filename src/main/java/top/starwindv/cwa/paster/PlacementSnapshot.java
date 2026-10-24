@@ -11,6 +11,12 @@ public record PlacementSnapshot(
 		Object placement,
 		List<PasterMaterial> requiredMaterials,
 		List<PasterBounds> bounds,
-		String fingerprint
+		String fingerprint,
+		List<PasterDiscardRule> discardRules
 ) {
+	public PlacementSnapshot {
+		requiredMaterials = List.copyOf(requiredMaterials);
+		bounds = List.copyOf(bounds);
+		discardRules = List.copyOf(discardRules);
+	}
 }

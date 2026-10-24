@@ -17,6 +17,7 @@ public record PasterSnapshotPayload(
 		String dimension,
 		List<PasterMaterial> requiredMaterials,
 		List<PasterBounds> bounds,
+		List<PasterDiscardRule> discardRules,
 		String fingerprint,
 		String error
 ) implements CustomPacketPayload {
@@ -39,6 +40,11 @@ public record PasterSnapshotPayload(
 					buffer.writeBlockPos(bound.start());
 					buffer.writeBlockPos(bound.end());
 				}
+				buffer.writeVarInt(payload.discardRules.size());
+				for (PasterDiscardRule rule : payload.discardRules) {
+					buffer.writeUtf(rule.containerId());
+					buffer.writeUtf(rule.itemId());
+				}
 				buffer.writeUtf(payload.fingerprint);
 				buffer.writeUtf(payload.error);
 			},
@@ -58,6 +64,11 @@ public record PasterSnapshotPayload(
 				for (int i = 0; i < boundsCount; i++) {
 					bounds.add(new PasterBounds(buffer.readBlockPos(), buffer.readBlockPos()));
 				}
+				int ruleCount = buffer.readVarInt();
+				List<PasterDiscardRule> rules = new ArrayList<>(ruleCount);
+				for (int i = 0; i < ruleCount; i++) {
+					rules.add(new PasterDiscardRule(buffer.readUtf(), buffer.readUtf()));
+				}
 				return new PasterSnapshotPayload(
 						requestId,
 						placementId,
@@ -65,6 +76,7 @@ public record PasterSnapshotPayload(
 						dimension,
 						materials,
 						bounds,
+						rules,
 						buffer.readUtf(),
 						buffer.readUtf()
 				);
@@ -74,6 +86,7 @@ public record PasterSnapshotPayload(
 	public PasterSnapshotPayload {
 		requiredMaterials = List.copyOf(requiredMaterials);
 		bounds = List.copyOf(bounds);
+		discardRules = List.copyOf(discardRules);
 	}
 
 	@Override
