@@ -1,9 +1,9 @@
 package top.starwindv.cwa.container;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.IdentifierArgument;
 import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -41,8 +42,8 @@ public final class ContainerCleanerCommand {
 						&& (AllowManager.canUseHostCommand(source, "cc") || permission.test(source)))
 				.then(Commands.argument("start", BlockPosArgument.blockPos())
 						.then(Commands.argument("end", BlockPosArgument.blockPos())
-								.then(Commands.argument("container", StringArgumentType.word())
-										.then(Commands.argument("ash", StringArgumentType.word())
+								.then(Commands.argument("container", IdentifierArgument.id())
+										.then(Commands.argument("ash", IdentifierArgument.id())
 												.then(Commands.literal("self")
 														.executes(ContainerCleanerCommand::cleanSelf))
 												.then(Commands.literal("discard")
@@ -108,16 +109,8 @@ public final class ContainerCleanerCommand {
 	}
 
 	private static @Nullable Target target(CommandSourceStack source, CommandContext<CommandSourceStack> context) {
-		String containerInput = StringArgumentType.getString(context, "container");
-		String ashInput = StringArgumentType.getString(context, "ash");
-
-		Identifier containerId = Identifier.tryParse(containerInput);
+		Identifier containerId = resolveBlockId(source, IdentifierArgument.getId(context, "container"));
 		if (containerId == null) {
-			source.sendFailure(Component.translatable("cwa.container.invalid_id", containerInput));
-			return null;
-		}
-		if (!BuiltInRegistries.BLOCK.containsKey(containerId)) {
-			source.sendFailure(Component.translatable("cwa.container.unknown_block", containerInput));
 			return null;
 		}
 
@@ -127,17 +120,69 @@ public final class ContainerCleanerCommand {
 			return null;
 		}
 
-		Identifier ashId = Identifier.tryParse(ashInput);
+		Identifier ashId = resolveItemId(source, IdentifierArgument.getId(context, "ash"));
 		if (ashId == null) {
-			source.sendFailure(Component.translatable("cwa.container.invalid_id", ashInput));
-			return null;
-		}
-		if (!BuiltInRegistries.ITEM.containsKey(ashId)) {
-			source.sendFailure(Component.translatable("cwa.container.unknown_item", ashInput));
 			return null;
 		}
 
 		return new Target(block, BuiltInRegistries.ITEM.getValue(ashId));
+	}
+
+	private static @Nullable Identifier resolveBlockId(CommandSourceStack source, Identifier parsedId) {
+		if (BuiltInRegistries.BLOCK.containsKey(parsedId)) {
+			return parsedId;
+		}
+
+		List<Identifier> matches = new ArrayList<>();
+		for (Identifier registered : BuiltInRegistries.BLOCK.keySet()) {
+			if (registered.getPath().equals(parsedId.getPath())) {
+				matches.add(registered);
+			}
+		}
+		if (matches.size() > 1) {
+			source.sendFailure(Component.translatable("cwa.container.ambiguous_block", formatIds(matches)));
+			return null;
+		}
+		if (matches.size() == 1) {
+			return matches.get(0);
+		}
+
+		source.sendFailure(Component.translatable("cwa.container.unknown_block", parsedId.toString()));
+		return null;
+	}
+
+	private static @Nullable Identifier resolveItemId(CommandSourceStack source, Identifier parsedId) {
+		if (BuiltInRegistries.ITEM.containsKey(parsedId)) {
+			return parsedId;
+		}
+
+		List<Identifier> matches = new ArrayList<>();
+		for (Identifier registered : BuiltInRegistries.ITEM.keySet()) {
+			if (registered.getPath().equals(parsedId.getPath())) {
+				matches.add(registered);
+			}
+		}
+		if (matches.size() > 1) {
+			source.sendFailure(Component.translatable("cwa.container.ambiguous_item", formatIds(matches)));
+			return null;
+		}
+		if (matches.size() == 1) {
+			return matches.get(0);
+		}
+
+		source.sendFailure(Component.translatable("cwa.container.unknown_item", parsedId.toString()));
+		return null;
+	}
+
+	private static String formatIds(List<Identifier> ids) {
+		StringBuilder builder = new StringBuilder();
+		for (Identifier id : ids) {
+			if (builder.length() > 0) {
+				builder.append(", ");
+			}
+			builder.append(id);
+		}
+		return builder.toString();
 	}
 
 	private static void sendResult(CommandSourceStack source, Target target, ContainerCleaner.Result result) {
