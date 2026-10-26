@@ -1,22 +1,6 @@
 # Carpet Wind Addition
 
-Carpet Wind Addition（简称 CWA）是 Carpet 的 Fabric 扩展模组，提供权限控制、更新抑制、投影粘贴、容器清理、自定义堆叠等生存与服务器辅助功能。
-
-## 支持版本
-
-| Minecraft | 分支 |
-| --- | --- |
-| 26.3 | `26.3` |
-| 1.21.1 | `1.21.1` |
-
-## 依赖
-
-- [Fabric Loader](https://fabricmc.net/use/installer/)
-- [Fabric API](https://modrinth.com/mod/fabric-api)
-- [Carpet](https://modrinth.com/mod/carpet)
-- [Litematica](https://modrinth.com/mod/litematica)（可选，仅投影粘贴需要）
-
-在专用服务器上使用 `/paster` 时，服务端也需要安装 CWA；不需要 Servux。
+Carpet Wind Addition（简称 CWA）是 Carpet 的 Fabric 扩展模组，提供一些不那么香草的功能扩展。
 
 ## 安装
 
@@ -46,12 +30,7 @@ Carpet Wind Addition（简称 CWA）是 Carpet 的 Fabric 扩展模组，提供�
 ./gradlew build
 ```
 
-产物在 `build/libs/`。依赖已缓存或网络不可用时，可以使用：
-
-```bash
-./gradlew build --offline
-```
-
 ## License
 
 本项目以 Apache-2.0 协议开源。
+
