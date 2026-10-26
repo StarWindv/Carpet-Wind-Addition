@@ -6,6 +6,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -56,7 +57,7 @@ public abstract class BucketItemMixin {
 			} else {
 				stack.shrink(1);
 				if (!player.getInventory().add(lavaBucket)) {
-					player.drop(lavaBucket, false);
+					player.drop(lavaBucket, false, Prediction.SERVER_ONLY);
 				}
 			}
 

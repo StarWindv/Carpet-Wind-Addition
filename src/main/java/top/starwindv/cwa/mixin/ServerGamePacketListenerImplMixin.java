@@ -60,11 +60,11 @@ public abstract class ServerGamePacketListenerImplMixin {
 		}
 
 		CommandSourceStack source = player.createCommandSourceStack();
-		if (!AllowManager.isAllowed(source, AllowManager.commandRoot(packet.getCommand()))) {
+		if (!AllowManager.isAllowed(source, AllowManager.commandRoot(packet.command()))) {
 			return;
 		}
 
-		StringReader command = new StringReader(packet.getCommand());
+		StringReader command = new StringReader(packet.command());
 		if (command.canRead() && command.peek() == '/') {
 			command.skip();
 		}
@@ -78,7 +78,7 @@ public abstract class ServerGamePacketListenerImplMixin {
 			Suggestions suggestions = results.getList().size() <= 1000
 					? results
 					: new Suggestions(results.getRange(), results.getList().subList(0, 1000));
-			listener.send(new ClientboundCommandSuggestionsPacket(packet.getId(), suggestions));
+			listener.send(new ClientboundCommandSuggestionsPacket(packet.id(), suggestions));
 		});
 		ci.cancel();
 	}

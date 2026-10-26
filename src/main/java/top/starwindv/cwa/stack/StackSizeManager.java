@@ -8,6 +8,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -75,7 +76,7 @@ public final class StackSizeManager {
 		}
 
 		if (remaining > 0) {
-			player.drop(remainder.copyWithCount(remaining), false);
+			player.drop(remainder.copyWithCount(remaining), false, Prediction.SERVER_ONLY);
 		}
 	}
 

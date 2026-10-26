@@ -3,6 +3,7 @@
 	"package": "top.starwindv.cwa.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
+		"AbstractFurnaceBlockEntityAccessor",
 		"AbstractFurnaceBlockEntityMixin",
 		"AnvilMenuMixin",
 		"BlockStateBaseMixin",

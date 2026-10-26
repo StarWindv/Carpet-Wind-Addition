@@ -15,7 +15,11 @@ import top.starwindv.cwa.rule.CwaSettings;
 
 @Mixin(ShapelessRecipe.class)
 public abstract class ShapelessRecipeMixin {
-	@Inject(method = "matches", at = @At("HEAD"), cancellable = true)
+	@Inject(
+			method = "matches(Lnet/minecraft/world/item/crafting/CraftingInput;Lnet/minecraft/world/level/Level;)Z",
+			at = @At("HEAD"),
+			cancellable = true
+	)
 	private void cwa$disableObsidianToLavaRecipe(
 			CraftingInput input,
 			Level level,

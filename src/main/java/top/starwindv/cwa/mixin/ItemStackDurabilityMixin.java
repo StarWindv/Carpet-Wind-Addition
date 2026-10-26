@@ -3,7 +3,6 @@ package top.starwindv.cwa.mixin;
 import java.util.function.Consumer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,7 +20,7 @@ public abstract class ItemStackDurabilityMixin {
 			int amount,
 			ServerLevel level,
 			ServerPlayer player,
-			Consumer<Item> onBreak,
+			Consumer<ItemStack> onBreak,
 			CallbackInfo ci
 	) {
 		if (amount > 0) {

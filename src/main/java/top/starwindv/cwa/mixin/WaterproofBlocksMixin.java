@@ -8,7 +8,7 @@ import net.minecraft.world.level.block.ButtonBlock;
 import net.minecraft.world.level.block.CarpetBlock;
 import net.minecraft.world.level.block.DiodeBlock;
 import net.minecraft.world.level.block.LeverBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RedstoneTorchBlock;
 import net.minecraft.world.level.block.TripWireHookBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -65,7 +65,7 @@ public abstract class WaterproofBlocksMixin {
 				|| block instanceof ButtonBlock
 				|| block instanceof TripWireHookBlock
 				|| block instanceof RedstoneTorchBlock
-				|| block instanceof RedStoneWireBlock
+				|| block instanceof RedstoneWireBlock
 				|| block instanceof DiodeBlock;
 	}
 }

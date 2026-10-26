@@ -345,7 +345,7 @@ public final class PasterManager {
 			return false;
 		}
 
-		List<ItemStack> nested = new ArrayList<>(contents.allItemsCopyStream().toList());
+		List<ItemStack> nested = new ArrayList<>(contents.itemCopies().toList());
 		boolean changed = false;
 		for (int index = 0; index < nested.size(); index++) {
 			ItemStack nestedStack = nested.get(index);

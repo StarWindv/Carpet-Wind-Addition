@@ -309,21 +309,36 @@ public final class LitematicaBridge {
 			}
 		}
 
-		return (List<?>) materialUtilsClass
-				.getMethod(
-						"getMaterialList",
-						Object2IntOpenHashMap.class,
-						Object2IntOpenHashMap.class,
-						Object2IntOpenHashMap.class,
+		// Litematica 0.29 added three entity material maps to getMaterialList.
+		// Keep both signatures so the fallback still works across versions.
+		Method getMaterialList = null;
+		for (Class<?>[] signature : new Class<?>[][]{
+				{
+						Object2IntOpenHashMap.class, Object2IntOpenHashMap.class, Object2IntOpenHashMap.class,
+						Object2IntOpenHashMap.class, Object2IntOpenHashMap.class, Object2IntOpenHashMap.class,
 						Player.class
-				)
-				.invoke(
-						null,
-						counts,
-						new Object2IntOpenHashMap<>(),
-						new Object2IntOpenHashMap<>(),
-						null
-				);
+				},
+				{
+						Object2IntOpenHashMap.class, Object2IntOpenHashMap.class, Object2IntOpenHashMap.class,
+						Player.class
+				}
+		}) {
+			try {
+				getMaterialList = materialUtilsClass.getMethod("getMaterialList", signature);
+				break;
+			} catch (NoSuchMethodException ignored) {
+			}
+		}
+		if (getMaterialList == null) {
+			throw new NoSuchMethodException("Litematica MaterialListUtils.getMaterialList");
+		}
+
+		Object[] args = new Object[getMaterialList.getParameterCount()];
+		for (int i = 0; i < args.length - 1; i++) {
+			args[i] = new Object2IntOpenHashMap<>();
+		}
+		args[0] = counts;
+		return (List<?>) getMaterialList.invoke(null, args);
 	}
 
 	private static void mergeContainerContents(

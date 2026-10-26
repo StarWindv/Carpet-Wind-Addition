@@ -10,6 +10,7 @@ import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.level.block.entity.AbstractFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.BlastFurnaceBlockEntity;
 import net.minecraft.world.level.block.entity.SmokerBlockEntity;
+import top.starwindv.cwa.mixin.AbstractFurnaceBlockEntityAccessor;
 import top.starwindv.cwa.util.ItemReceiver;
 
 public final class FurnaceCleaner {
@@ -77,7 +78,7 @@ public final class FurnaceCleaner {
 		if (slot == SLOT_INPUT) {
 			return !canSmelt(level, furnace, stack);
 		}
-		return level.fuelValues().burnDuration(stack) <= 0;
+		return ((AbstractFurnaceBlockEntityAccessor) furnace).cwa$getBurnDuration(level, stack) <= 0;
 	}
 
 	private static boolean canSmelt(ServerLevel level, AbstractFurnaceBlockEntity furnace, ItemStack stack) {

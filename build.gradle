@@ -4,6 +4,19 @@ plugins {
 }
 
 repositories {
+	flatDir {
+		name = 'Local 26.3 dependencies'
+		dirs '.refs/26.3'
+	}
+	// Domestic mirrors first: Mojang/Fabric's own Maven is unreliable here.
+	maven {
+		name = 'Aliyun Public'
+		url = 'https://maven.aliyun.com/repository/public'
+	}
+	maven {
+		name = 'Huawei Cloud'
+		url = 'https://repo.huaweicloud.com/repository/maven/'
+	}
 	maven {
 		name = 'Masa Maven'
 		url = 'https://masa.dy.fi/maven'

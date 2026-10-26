@@ -2,6 +2,7 @@ package top.starwindv.cwa.mixin;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -68,7 +69,7 @@ public abstract class QuickPlaceObsidianMixin {
 				lavaBucket.shrink(1);
 				ItemStack emptyBucket = new ItemStack(Items.BUCKET);
 				if (!player.getInventory().add(emptyBucket)) {
-					player.drop(emptyBucket, false);
+					player.drop(emptyBucket, false, Prediction.SERVER_ONLY);
 				}
 			}
 		}
