@@ -1,295 +1,38 @@
 # Carpet Wind Addition
 
-本模组作为 Carpet 的扩展模组, 为其增加了部分增强功能
+Carpet Wind Addition（简称 CWA）是 Carpet 的 Fabric 扩展模组，提供一些不那么香草的扩展功能.
 
-## ToC
+## 安装
 
-- [Carpet Wind Addition](#carpet-wind-addition)
-  - [ToC](#toc)
-  - [I. 功能概览](#i-功能概览)
-    - [1.1 权限控制器](#11-权限控制器)
-    - [1.2 禁止区域内方块更新](#12-禁止区域内方块更新)
-    - [1.3 吃不停](#13-吃不停)
-    - [1.4 活塞采集紫水晶簇](#14-活塞采集紫水晶簇)
-    - [1.5 投影**粘贴**机](#15-投影粘贴机)
-    - [1.6 熔炉清理](#16-熔炉清理)
-    - [1.7 容器清理](#17-容器清理)
-    - [1.8 物品堆叠上限](#18-物品堆叠上限)
-    - [1.9 怪物装备与黑曜石](#19-怪物装备与黑曜石)
-  - [II. License](#ii-license)
+1. 安装 Fabric Loader 和 Fabric API。
+2. 将 Carpet 和 CWA 放入 `mods` 目录。
+3. 需要使用投影粘贴时，在客户端额外放入 Litematica。
+4. 启动游戏。
 
----
+## 规则
 
-## I. 功能概览
+所有 CWA 开关型规则默认关闭，使用 `/carpet <规则> true` 开启。规则位于 `/carpet` 的 `CWA` 分类中。
 
-### 1.1 权限控制器
+## 文档
 
-仅单人存档或作为局域网主机可用.
+完整的功能列表、规则和命令见 [docs/index.md](docs/index.md)。
 
-该功能只降低主机使用Command时的权限门槛, 默认不会自动授权给客机. 开启 `AllowSharePermission` 后, 客机也能使用主机通过 `/allow` 放行的命令.
+常用入口：
 
-Usage: 
+- [投影粘贴机](docs/05-litematica-paster.md)
+- [熔炉清理](docs/06-furnace-cleaner.md)
+- [容器清理](docs/07-container-cleaner.md)
+- [物品堆叠上限](docs/08-stack-anything.md)
 
-```text
-/allow
-/allow <Command> [true|false]
+## 从源码构建
+
+```bash
+./gradlew build
 ```
 
-- `/allow`: 列出当前允许的Command. 
-- `/allow <Command>`: 允许对应Command. 
-- `/allow <Command> false`: 取消允许. 
-- Command 不需要带 `/`, 例如 `/allow gamemode` 
+产物在 `build/libs/`。
 
-**权限共享**
+## License
 
-```text
-/carpet AllowSharePermission true
-```
-
-默认关闭. `/allow` 本身仍仅限主机使用.
-
-被放行的命令在客机客户端也会正常解析实体选择器.
-
-### 1.2 禁止区域内方块更新
-
-通过 `/carpet NoUpdate` 管理按维度保存的更新抑制选区. 选区默认创建为禁用状态. 
-
-```text
-/carpet NoUpdate range <起点> <终点> [可选别名]
-/carpet NoUpdate list
-/carpet NoUpdate enable <编号|别名>
-/carpet NoUpdate disable <编号|别名>
-/carpet NoUpdate remove <编号|别名>
-```
-
-- `<起点>`、`<终点>`: 使用方块坐标, 支持 `~` 等相对坐标. 
-- `[别名]`: 可选, 不能是 `-`、纯数字或已有别名. 
-- 同一维度内不允许创建范围重叠的选区. 
-- `list` 显示当前维度的全部选区; `enable` / `disable` 控制是否生效. 
-- 选区保存于世界数据, 重进世界后仍会保留. 
-
-更新抑制在**目标方块**位于已启用选区内时生效, 目前拦截: 
-
-- `handleNeighborChanged` 邻接方块更新
-- `updateShape` 形状更新
-
-该功能不会取消计划刻、流体更新、实体更新等其它更新来源. 
-
-### 1.3 吃不停
-
-> 其实是一个类似模组做的事情, 但是高版本似乎没有, 所以就自己加上了...
-
-Carpet 规则: 
-
-```text
-/carpet NeverFull true
-```
-
-默认关闭. 开启后, 玩家在饥饿值已满时仍然可以进食. 
-
-### 1.4 活塞采集紫水晶簇
-
-Carpet 规则: 
-
-```text
-/carpet PistonHarvestAmethyst true
-```
-
-默认关闭. 开启后, 活塞破坏紫水晶簇时会掉落紫水晶簇物品, 而不是紫水晶碎片. 
-
-### 1.5 投影**粘贴**机
-
-该功能用于按当前 Litematica 投影收集材料、粘贴投影以及返还材料, 安装 Litematica 时可用, 相当于在生存中消耗材料直接使用投影的模式 5. 单人游戏继续使用原有的客户端/服务端一体化路径; 在专用服务器或局域网客机上, 由服务端保存并校验材料数据, 客户端通过 CWA 数据包转发 Litematica 的粘贴命令.
-
-Usage:
-
-```text
-/carpet LitematicaPaster <true|false>
-```
-
-默认关闭.
-
-启用后, 主机可使用 `/paster` Command. 在专用服务器上, 服务器需要安装 CWA, 普通玩家即可使用 `/paster` 的全部子命令, 不需要 OP; 是否开启该规则由服务器管理员决定. 客户端需要安装 CWA 和 Litematica, 服务器和客户端都不需要安装 Servux. 远程粘贴时, 客户端运行 Litematica 的命令粘贴任务, 产生的 `setblock`/`fill`/`summon`/`data`/`clone` 命令通过 CWA 数据包发送; 服务端只在当前粘贴会话内接受这些命令, 并校验它们对应的坐标.
-
-粘贴器自身不要求创造模式; 远程粘贴也不需要给玩家 OP 权限.
-
-**Command**
-
-| Command | 说明 |
-| --- | --- |
-| `/paster collect self` | 从玩家背包收集当前投影所需材料, 包含背包内潜影盒的内容, 并扣除对应物品 |
-| `/paster collect <起点> <终点>` | 从选区内的容器收集材料并扣除, 支持箱子、木桶、放置的潜影盒, 以及容器内潜影盒物品的内容 |
-| `/paster collect list [页码]` | 显示当前投影的材料列表, 每页 10 种, 可查看需求、已收和缺失数量 |
-| `/paster paste` | 检查材料是否充足, 然后粘贴当前投影 |
-| `/paster discard in <容器 ID> <物品 ID>` | 忽略当前投影中指定容器内的指定物品, 粘贴后也会移除 |
-| `/paster return self` | 将暂存材料返还到玩家背包, 放不下的继续保留在数据中 |
-| `/paster return <起点> <终点>` | 将暂存材料返还到选区内的容器, 放不下的继续保留在数据中 |
-
-示例: 
-
-```text
-/paster collect self
-/paster collect 100 60 100 140 80 140
-/paster collect list
-/paster collect list 2
-/paster paste
-/paster return self
-```
-
-**专用服务器数据校验**
-
-- 第一次执行 `/paster` 时, 服务端会向客户端请求当前投影的快照, 包括投影 UUID、投影文件 SHA-256、子区域范围以及材料需求.
-- 服务端的投影身份是 `玩家 UUID + Litematica 投影 UUID`, 不使用投影名称. 因此不同玩家、同名投影以及复制后 UUID 相同的投影都不会共享材料或快照, 玩家也不能操作其他玩家的暂存材料.
-- 同一玩家的多个投影按各自的 Litematica UUID 分开记录; 如果两份投影在 Litematica 中使用了同一个 `hash_code`, 它们会被视为同一个投影身份.
-- 每个玩家同一时间最多进行一个粘贴任务; 不同玩家可以并行粘贴. 材料需求、已收集材料和投影指纹都保存在服务端的世界数据中, 客户端本地文件不是材料记录的依据.
-- 每次粘贴前都会重新核对投影文件指纹; 收集材料后修改本地投影文件会导致指纹不一致, 粘贴会被拒绝.
-- 粘贴任务由服务端确认材料充足后启动, 只有客户端报告粘贴成功才会扣除材料; 失败或中止不会扣除.
-
-**材料记录与提示**
-
-- 只收集当前仍缺少的数量. 
-- 材料按投影和物品组件精确匹配.
-- 收集结果会显示本次收集到的材料, 以及每种材料在本次收集后仍缺多少. 
-- `collect list` 使用对齐表格显示需求、已收、缺失; 缺失数量为红色, 已满足为绿色, 行使用灰白交错颜色. 
-- `/paster return <起点> <终点>` 存入容器后, 会额外输出实际接收到物品的容器坐标.
-- 模式 9 修改投影后如果出现多余材料, 列表会以 `*` 标记为额外暂存材料. 
-- 材料不足时会提示第一种缺失材料及数量, 完整缺失列表可用 `collect list` 查看. 
-
-**粘贴与材料消耗**
-
-- 粘贴开始时会在投影各子区域建立临时更新抑制, 粘贴结束后恢复. 
-- 粘贴成功后会扣除本次投影所需的材料, 只保留额外多收集的部分. 
-- 粘贴失败或中止不会扣除材料, 之后仍可返还. 
-- 粘贴进行中禁止 `/paster return`, 避免在任务完成前取回材料. 
-
-**投影卸载保护**
-
-收集材料后, 模组会禁止玩家在 Litematica 配置页面卸载相关投影.
-
-只要对应投影仍有 paster 暂存材料, 就不能从投影列表卸载它; 尝试卸载时会收到提示. 材料全部返还后, 保护自动解除. 
-
-### 1.6 熔炉清理
-
-> 高速熔炉组误投入不可烧炼的物品会阻塞生产, 而大型熔炉组掏炉灰非常麻烦, 因此提供了这个功能.
-
-Carpet 规则:
-
-```text
-/carpet FurnacesCleaner true
-```
-
-默认关闭. 启用后可使用 `/furnace` Command (需要权限等级 2, 单人存档房主不受此限制):
-
-```text
-/furnace <起点> <终点> self
-/furnace <起点> <终点> discard
-/furnace <起点> <终点> to <起点> <终点>
-```
-
-- `<起点>`、`<终点>`: 使用方块坐标, 支持 `~` 等相对坐标.
-- 清理选区内的熔炉、高炉和烟熏炉:
-  - 输入槽中无法在当前炉子烧炼的物品.
-  - 燃料槽中不能作为燃料的物品.
-- 输出槽不会被清理.
-- 接收方式:
-  - `self`: 放入玩家背包.
-  - `discard`: 直接丢弃.
-  - `to <起点> <终点>`: 放入选区内的容器, 支持箱子、木桶、放置的潜影盒等. 该区域内的熔炉不会被作为接收容器.
-- 接收方放不下的炉灰会继续留在熔炉中, 并给出提示.
-
-### 1.7 容器清理
-
-> 用于清理大型机器中因掉刻等原因混入其它组件的填充物.
-
-Carpet 规则:
-
-```text
-/carpet ContainerCleaner true
-```
-
-默认关闭. 启用后可使用 `/cc` Command (需要权限等级 2, 单人存档房主不受此限制):
-
-```text
-/cc <起点> <终点> <容器名称> <炉灰名称> self
-/cc <起点> <终点> <容器名称> <炉灰名称> discard
-/cc <起点> <终点> <容器名称> <炉灰名称> to <起点> <终点>
-```
-
-- `<起点>`、`<终点>`: 使用方块坐标, 支持 `~` 等相对坐标.
-- `<容器名称>`: 方块 ID, `dropper` 和 `minecraft:dropper` 两种写法均可. 命令会先检查它是否为容器方块.
-- `<炉灰名称>`: 物品 ID, 同样支持短名称和带命名空间的写法.
-- 只清理指定类型容器中的指定物品.
-- 接收方式:
-  - `self`: 放入玩家背包.
-  - `discard`: 直接丢弃.
-  - `to <起点> <终点>`: 放入选区内的容器, 支持箱子、木桶、放置的潜影盒等. 正在被清理的容器本身和熔炉类容器会被跳过.
-- 接收方放不下的炉灰会继续留在原容器槽位中, 并给出提示.
-
-### 1.8 物品堆叠上限
-
-Carpet 规则:
-
-```text
-/carpet StackAnything true
-/carpet MaxStackAnythingSize <正整数>
-```
-
-默认关闭. 启用后可使用 `/stack`:
-
-```text
-/stack <物品 ID> <1-当前上限>
-```
-
-- `MaxStackAnythingSize` 默认 `64`, 只限制 `/stack` 的可设置范围, 不影响已经保存的堆叠上限或其它堆叠行为.
-- `<物品 ID>`: 支持带命名空间 (例如 `create:copper_sheet`) 和不带命名空间 (例如 `copper_sheet`). 如果给出的完整 ID 不存在, 会再按路径在所有已注册命名空间中查找; 多个匹配会提示使用命名空间.
-- 设置只按物品名称匹配, 不区分 NBT/组件.
-- 有耐久的物品堆叠后使用时, 会先拆成 1 个正在使用的物品, 其余放入背包; 背包放不下时掉落在玩家附近, 只有正在使用的那个消耗耐久.
-- 原版 99 的硬堆叠上限已移除, 实际堆叠数量跟随每个物品的设置 (例如可以设置到 999).
-- 调低某个物品的堆叠上限时, 已经存在的超限堆叠不会自动拆分.
-
-### 1.9 怪物装备与黑曜石
-
-```text
-/carpet MobsNoEquipmentDrop true
-/carpet MobsNoSpear true
-/carpet BucketTansOsidianToLava true
-/carpet ObsidianToLavaRecipe true
-```
-
-- `MobsNoEquipmentDrop`: 怪物自然生成的装备不再掉落.
-- `MobsNoSpear`: 新生成的怪物不持有长矛.
-- `BucketTansOsidianToLava`: 手持空桶右键黑曜石会消耗黑曜石并获得岩浆桶.
-- `ObsidianToLavaRecipe`: 工作台无序配方, 空桶 + 黑曜石 -> 岩浆桶.
-- 熔炉/高炉/烟熏器的燃料槽不再允许存放自定义堆叠的岩浆桶; 最多保留 1 个, 多余的会掉落在熔炉旁.
-
-### 1.10 快捷冰化水与高温TNT
-
-```text
-/carpet QuickIceToWater true
-/carpet QuickITWCheck true
-/carpet HotTNT true
-```
-
-- `QuickIceToWater`: 一只手拿镐子、另一只手拿冰块时, 右键放置冰块会直接放置水, 并消耗冰块、扣除镐子耐久.
-- 精准采集附魔会使该功能无效, 按原样放置冰块.
-- `QuickITWCheck`: 启用后, 只有名称中包含 `_water` 的镐子才能触发快捷冰化水.
-- `HotTNT`: TNT 爆炸破坏方块后, 如果掉落物存在熔炉配方, 则改为掉落烧炼产物. 例如圆石 -> 石头.
-- HotTNT 兼容 Carpet-TIS 的 `tooledTNT`: 精准采集镐子使石头掉落石头时, 会继续烧炼为平滑石.
-
-### 1.11 防水方块
-
-```text
-/carpet WaterproofRedstoneComponents true
-/carpet WaterproofCarpet true
-```
-
-- `WaterproofRedstoneComponents`: 水流不会冲掉拉杆、按钮、绊线钩、红石火把、红石粉、中继器和比较器.
-- `WaterproofCarpet`: 水流不会冲掉任何地毯.
-- 只影响水流替换; 直接放置水、爆炸或玩家破坏等其它方式不受影响.
-
----
-
-## II. License
-
-本项目以 Apache-2.0 协议开源
+本项目以 Apache-2.0 协议开源。
 
