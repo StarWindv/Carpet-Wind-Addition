@@ -1,5 +1,6 @@
 package top.starwindv.cwa.mixin;
 
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.CraftingMenu;
@@ -23,8 +24,22 @@ public abstract class CraftingMenuMixin implements NearbyCraftingMenu {
 		return this.access;
 	}
 
+	@Inject(
+			method = "<init>(ILnet/minecraft/world/entity/player/Inventory;Lnet/minecraft/world/inventory/ContainerLevelAccess;)V",
+			at = @At("TAIL")
+	)
+	private void cwa$sendNearbyContents(
+			int containerId,
+			Inventory inventory,
+			ContainerLevelAccess access,
+			CallbackInfo ci
+	) {
+		NearbyCraftingManager.sendNearbyContents((CraftingMenu) (Object) this, inventory.player);
+	}
+
 	@Inject(method = "removed", at = @At("HEAD"))
 	private void cwa$returnNearbyCraftingItems(Player player, CallbackInfo ci) {
 		NearbyCraftingManager.onMenuRemoved((CraftingMenu) (Object) this);
+		NearbyCraftingManager.clearClient(player);
 	}
 }
