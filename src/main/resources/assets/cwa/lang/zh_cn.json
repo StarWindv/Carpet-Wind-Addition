@@ -112,7 +112,7 @@
 	"carpet.rule.PistonHarvestAmethyst.name": "活塞采集紫水晶簇",
 	"carpet.rule.PistonHarvestAmethyst.desc": "活塞破坏紫水晶簇时，改为掉落紫水晶簇物品，而不是紫水晶碎片。",
 	"carpet.rule.ExplosionProofTintedGlass.name": "防爆遮光玻璃",
-	"carpet.rule.ExplosionProofTintedGlass.desc": "遮光玻璃的防爆系数与黑曜石一致，不会被爆炸摧毁。",
+	"carpet.rule.ExplosionProofTintedGlass.desc": "使遮光玻璃的防爆系数与黑曜石一致，不会被爆炸摧毁。",
 	"carpet.rule.NearbyCrafting.name": "就近合成",
 	"carpet.rule.NearbyCrafting.desc": "使用工作台配方书时，自动从附近的箱子、木桶和潜影盒中取用材料。",
 	"carpet.rule.NearbyCraftingSearchSize.name": "就近合成搜索范围",
