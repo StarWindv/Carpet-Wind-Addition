@@ -5,7 +5,6 @@ import carpet.api.settings.Rule;
 import carpet.api.settings.RuleCategory;
 import carpet.api.settings.Validator;
 import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.server.MinecraftServer;
 
 public final class CwaSettings {
 	public static final String CWA = "CWA";
@@ -87,7 +86,7 @@ public final class CwaSettings {
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NearbyCrafting = false;
 
-	@Rule(categories = {CWA, RuleCategory.FEATURE}, strict = false, validators = {CwaSettings.NearbyCraftingSearchSizeValidator.class})
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, strict = false, validators = {CwaSettings.PositiveInteger.class})
 	public static int NearbyCraftingSearchSize = 8;
 
 	private CwaSettings() {
@@ -110,40 +109,4 @@ public final class CwaSettings {
 		}
 	}
 
-	public static class NearbyCraftingSearchSizeValidator extends Validator<Integer> {
-		@Override
-		public Integer validate(
-				CommandSourceStack source,
-				CarpetRule<Integer> currentRule,
-				Integer newValue,
-				String userString
-		) {
-			if (newValue == null || newValue <= 0) {
-				return null;
-			}
-
-			MinecraftServer server = source == null ? null : source.getServer();
-			if (server == null) {
-				return newValue;
-			}
-
-			if (server.getPlayerList() == null) {
-				return newValue;
-			}
-
-			int simulationDistance = server.getPlayerList().getSimulationDistance();
-			if (simulationDistance <= 0) {
-				// The integrated server restores rule defaults before the player
-				// list has received the world's simulation distance.
-				return newValue;
-			}
-
-			return newValue <= simulationDistance * 16 ? newValue : null;
-		}
-
-		@Override
-		public String description() {
-			return "Must be positive and no larger than the loaded radius of the current simulation distance";
-		}
-	}
 }
