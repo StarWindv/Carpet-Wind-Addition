@@ -76,6 +76,7 @@
 	"cwa.paster.list.column.stored": "已收",
 	"cwa.paster.list.column.missing": "缺失",
 	"cwa.paster.protection.unload_blocked": "该投影仍有打印机暂存材料，无法卸载。请先返还材料。",
+	"cwa.nearby_crafting.size_clamped": "就近合成搜索范围 %s 超过当前模拟距离可加载范围，已限制为 %s。",
 	"carpet.rule.StackAnything.name": "任意堆叠",
 	"carpet.rule.StackAnything.desc": "允许使用 /stack 修改指定物品的堆叠上限。",
 	"carpet.rule.MaxStackAnythingSize.name": "堆叠上限最大值",
@@ -115,6 +116,6 @@
 	"carpet.rule.NearbyCrafting.name": "就近合成",
 	"carpet.rule.NearbyCrafting.desc": "使用工作台配方书时，自动从附近的箱子、木桶和潜影盒中取用材料。",
 	"carpet.rule.NearbyCraftingSearchSize.name": "就近合成搜索范围",
-	"carpet.rule.NearbyCraftingSearchSize.desc": "设置工作台向各方向搜索容器的格数，默认 8，不能超过当前模拟距离的加载范围。"
+	"carpet.rule.NearbyCraftingSearchSize.desc": "设置工作台向各方向搜索容器的格数，默认 8。超过当前模拟距离的加载范围时，会在首次使用时自动限制。"
 }
 

@@ -76,6 +76,7 @@
 	"cwa.paster.list.column.stored": "Have",
 	"cwa.paster.list.column.missing": "Miss",
 	"cwa.paster.protection.unload_blocked": "This schematic still has materials stored by the paster and cannot be unloaded. Return the materials first.",
+	"cwa.nearby_crafting.size_clamped": "Nearby crafting search size %s exceeds the current simulation distance's loaded radius; using %s.",
 	"carpet.rule.StackAnything.name": "Stack Anything",
 	"carpet.rule.StackAnything.desc": "Allows /stack to change the max stack size of a specific item.",
 	"carpet.rule.MaxStackAnythingSize.name": "Max Stack Anything Size",
@@ -115,5 +116,5 @@
 	"carpet.rule.NearbyCrafting.name": "Nearby Crafting",
 	"carpet.rule.NearbyCrafting.desc": "When using the crafting table recipe book, automatically takes materials from nearby chests, barrels, and shulker boxes.",
 	"carpet.rule.NearbyCraftingSearchSize.name": "Nearby Crafting Search Size",
-	"carpet.rule.NearbyCraftingSearchSize.desc": "Sets how many blocks around the crafting table are searched for containers. Defaults to 8 and cannot exceed the loaded radius of the current simulation distance."
+	"carpet.rule.NearbyCraftingSearchSize.desc": "Sets how many blocks around the crafting table are searched for containers. Defaults to 8; values above the current simulation distance's loaded radius are limited on first use."
 }

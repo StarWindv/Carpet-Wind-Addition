@@ -8,8 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,34 +28,39 @@ import net.minecraft.world.level.block.ShulkerBoxBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.rule.CwaSettings;
 
 public final class NearbyCraftingManager {
 	public static final int DEFAULT_SEARCH_SIZE = 8;
 	private static final ThreadLocal<NearbyCraftingContext> CURRENT = new ThreadLocal<>();
 	private static final Map<AbstractContainerMenu, NearbyCraftingContext> CONTEXTS = new WeakHashMap<>();
+	private static final Map<UUID, String> WARNED_PLAYERS = new ConcurrentHashMap<>();
 
 	private NearbyCraftingManager() {
 	}
 
 	public static int maxSearchSize(MinecraftServer server) {
-		if (server == null) {
+		if (server == null || server.getPlayerList() == null) {
 			return Integer.MAX_VALUE;
 		}
-		return Math.max(1, server.getPlayerList().getSimulationDistance() * 16);
+
+		int simulationDistance = server.getPlayerList().getSimulationDistance();
+		return simulationDistance <= 0 ? Integer.MAX_VALUE : simulationDistance * 16;
+	}
+
+	public static int configuredSearchSize() {
+		int configured = CwaSettings.NearbyCraftingSearchSize;
+		return configured > 0 ? configured : DEFAULT_SEARCH_SIZE;
 	}
 
 	public static int searchSize(MinecraftServer server) {
-		int configured = CwaSettings.NearbyCraftingSearchSize;
-		if (configured <= 0) {
-			configured = DEFAULT_SEARCH_SIZE;
-		}
-		return Math.min(configured, maxSearchSize(server));
+		return Math.min(configuredSearchSize(), maxSearchSize(server));
 	}
 
 	public static void begin(CraftingMenu menu, Inventory inventory) {
 		CURRENT.remove();
-		if (!CwaSettings.NearbyCrafting || !(inventory.player instanceof ServerPlayer)) {
+		if (!CwaSettings.NearbyCrafting || !(inventory.player instanceof ServerPlayer player)) {
 			return;
 		}
 		if (!(menu instanceof NearbyCraftingMenu accessMenu)) {
@@ -69,7 +77,12 @@ public final class NearbyCraftingManager {
 		TableLocation table = location.get();
 		ServerLevel level = table.level();
 		MinecraftServer server = level.getServer();
+		int configured = configuredSearchSize();
 		int radius = searchSize(server);
+		if (radius < configured) {
+			warnClamped(player, configured, radius);
+		}
+
 		List<ContainerEntry> containers = findContainers(level, table.pos(), radius);
 		if (containers.isEmpty()) {
 			return;
@@ -104,6 +117,25 @@ public final class NearbyCraftingManager {
 	public static void reset() {
 		CURRENT.remove();
 		CONTEXTS.clear();
+		WARNED_PLAYERS.clear();
+	}
+
+	private static void warnClamped(ServerPlayer player, int configured, int effective) {
+		String warning = configured + ":" + effective;
+		if (warning.equals(WARNED_PLAYERS.put(player.getUUID(), warning))) {
+			return;
+		}
+
+		player.sendSystemMessage(Component.translatable(
+				"cwa.nearby_crafting.size_clamped",
+				configured,
+				effective
+		));
+		CarpetWindAddition.LOGGER.warn(
+				"NearbyCraftingSearchSize {} exceeds the current simulation distance loaded radius; using {}",
+				configured,
+				effective
+		);
 	}
 
 	public static List<ContainerEntry> findContainers(ServerLevel level, BlockPos center, int radius) {
