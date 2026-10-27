@@ -5,6 +5,7 @@ import carpet.api.settings.Rule;
 import carpet.api.settings.RuleCategory;
 import carpet.api.settings.Validator;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.MinecraftServer;
 
 public final class CwaSettings {
 	public static final String CWA = "CWA";
@@ -24,6 +25,9 @@ public final class CwaSettings {
 	public static final String HOT_TNT = "HotTNT";
 	public static final String WATERPROOF_REDSTONE_COMPONENTS = "WaterproofRedstoneComponents";
 	public static final String WATERPROOF_CARPET = "WaterproofCarpet";
+	public static final String EXPLOSION_PROOF_TINTED_GLASS = "ExplosionProofTintedGlass";
+	public static final String NEARBY_CRAFTING = "NearbyCrafting";
+	public static final String NEARBY_CRAFTING_SEARCH_SIZE = "NearbyCraftingSearchSize";
 
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean NeverFull = false;
@@ -73,6 +77,15 @@ public final class CwaSettings {
 	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
 	public static boolean WaterproofCarpet = false;
 
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean ExplosionProofTintedGlass = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, options = {"true", "false"}, strict = true)
+	public static boolean NearbyCrafting = false;
+
+	@Rule(categories = {CWA, RuleCategory.FEATURE}, strict = false, validators = {CwaSettings.NearbyCraftingSearchSizeValidator.class})
+	public static int NearbyCraftingSearchSize = 8;
+
 	private CwaSettings() {
 	}
 
@@ -90,6 +103,33 @@ public final class CwaSettings {
 		@Override
 		public String description() {
 			return "Must be a positive integer";
+		}
+	}
+
+	public static class NearbyCraftingSearchSizeValidator extends Validator<Integer> {
+		@Override
+		public Integer validate(
+				CommandSourceStack source,
+				CarpetRule<Integer> currentRule,
+				Integer newValue,
+				String userString
+		) {
+			if (newValue == null || newValue <= 0) {
+				return null;
+			}
+
+			MinecraftServer server = source == null ? null : source.getServer();
+			if (server == null) {
+				return newValue;
+			}
+
+			int max = Math.max(1, server.getPlayerList().getSimulationDistance() * 16);
+			return newValue <= max ? newValue : null;
+		}
+
+		@Override
+		public String description() {
+			return "Must be positive and no larger than the loaded radius of the current simulation distance";
 		}
 	}
 }

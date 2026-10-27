@@ -9,6 +9,7 @@
 		"BucketItemMixin",
 		"CommandsMixin",
 		"ContainerMixin",
+		"CraftingMenuMixin",
 		"ItemCommandsMixin",
 		"ItemCraftingRemainderMixin",
 		"ItemInstanceMixin",
@@ -20,9 +21,12 @@
 		"QuickIceToWaterMixin",
 		"QuickPlaceObsidianMixin",
 		"PlayerMixin",
+		"RecipeBookMenuMixin",
 		"ServerGamePacketListenerImplMixin",
+		"ServerPlaceRecipeMixin",
 		"ShapelessRecipeAccessor",
 		"ShapelessRecipeMixin",
+		"TintedGlassExplosionMixin",
 		"WaterproofBlocksMixin"
 	],
 	"client": [

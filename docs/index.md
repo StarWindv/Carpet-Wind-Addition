@@ -16,3 +16,5 @@
 | [12](12-quick-place-obsidian.md) | 快捷放置黑曜石 |
 | [13](13-hot-tnt.md) | 高温 TNT |
 | [14](14-waterproof-blocks.md) | 防水方块 |
+| [15](15-explosion-proof-tinted-glass.md) | 防爆遮光玻璃 |
+| [16](16-nearby-crafting.md) | 就近合成 |
