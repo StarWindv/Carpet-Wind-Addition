@@ -14,6 +14,7 @@ import top.starwindv.cwa.allow.AllowManager;
 import top.starwindv.cwa.command.AllowCommand;
 import top.starwindv.cwa.command.NoUpdateCommand;
 import top.starwindv.cwa.container.ContainerCleanerCommand;
+import top.starwindv.cwa.crafting.NearbyCraftingManager;
 import top.starwindv.cwa.furnace.FurnaceCommand;
 import top.starwindv.cwa.noupdate.NoUpdateManager;
 import top.starwindv.cwa.paster.LitematicaBridge;
@@ -53,7 +54,10 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.QUICK_PLACE_OBSIDIAN) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.HOT_TNT) == null
 				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.WATERPROOF_REDSTONE_COMPONENTS) == null
-				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.WATERPROOF_CARPET) == null) {
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.WATERPROOF_CARPET) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.EXPLOSION_PROOF_TINTED_GLASS) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.NEARBY_CRAFTING) == null
+				|| CarpetServer.settingsManager.getCarpetRule(CwaSettings.NEARBY_CRAFTING_SEARCH_SIZE) == null) {
 			CarpetServer.settingsManager.parseSettingsClass(CwaSettings.class);
 		}
 
@@ -107,6 +111,7 @@ public final class CarpetWindAdditionExtension implements CarpetExtension {
 		NoUpdateManager.reset();
 		PasterManager.onServerClosed(server);
 		StackSizeManager.clear();
+		NearbyCraftingManager.reset();
 	}
 
 	@Override

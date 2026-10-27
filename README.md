@@ -23,6 +23,7 @@ Carpet Wind Addition（简称 CWA）是 Carpet 的 Fabric 扩展模组，提供�
 - [熔炉清理](docs/06-furnace-cleaner.md)
 - [容器清理](docs/07-container-cleaner.md)
 - [物品堆叠上限](docs/08-stack-anything.md)
+- [就近合成](docs/16-nearby-crafting.md)
 
 ## 从源码构建
 

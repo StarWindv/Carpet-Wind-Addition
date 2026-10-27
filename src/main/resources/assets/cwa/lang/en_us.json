@@ -111,5 +111,11 @@
 	"carpet.rule.NeverFull.name": "Never Full",
 	"carpet.rule.NeverFull.desc": "Allows players to eat food even when their hunger bar is full.",
 	"carpet.rule.PistonHarvestAmethyst.name": "Piston Harvest Amethyst",
-	"carpet.rule.PistonHarvestAmethyst.desc": "Makes pistons drop the amethyst cluster item instead of amethyst shards when they destroy an amethyst cluster."
+	"carpet.rule.PistonHarvestAmethyst.desc": "Makes pistons drop the amethyst cluster item instead of amethyst shards when they destroy an amethyst cluster.",
+	"carpet.rule.ExplosionProofTintedGlass.name": "Explosion-Proof Tinted Glass",
+	"carpet.rule.ExplosionProofTintedGlass.desc": "Tinted glass has the same blast resistance as obsidian and is not destroyed by explosions.",
+	"carpet.rule.NearbyCrafting.name": "Nearby Crafting",
+	"carpet.rule.NearbyCrafting.desc": "When using the crafting table recipe book, automatically takes materials from nearby chests, barrels, and shulker boxes.",
+	"carpet.rule.NearbyCraftingSearchSize.name": "Nearby Crafting Search Size",
+	"carpet.rule.NearbyCraftingSearchSize.desc": "Sets how many blocks around the crafting table are searched for containers. Defaults to 8 and cannot exceed the loaded radius of the current simulation distance."
 }
