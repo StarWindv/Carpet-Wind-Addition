@@ -114,7 +114,7 @@
 	"carpet.rule.PistonHarvestAmethyst.name": "Piston Harvest Amethyst",
 	"carpet.rule.PistonHarvestAmethyst.desc": "Makes pistons drop the amethyst cluster item instead of amethyst shards when they destroy an amethyst cluster.",
 	"carpet.rule.ExplosionProofTintedGlass.name": "Explosion-Proof Tinted Glass",
-	"carpet.rule.ExplosionProofTintedGlass.desc": "Tinted glass has the same blast resistance as obsidian and is not destroyed by explosions.",
+	"carpet.rule.ExplosionProofTintedGlass.desc": "Gives tinted glass the same blast resistance as obsidian so explosions cannot destroy it.",
 	"carpet.rule.NearbyCrafting.name": "Nearby Crafting",
 	"carpet.rule.NearbyCrafting.desc": "When using the crafting table recipe book, automatically takes materials from nearby chests, barrels, and shulker boxes.",
 	"carpet.rule.NearbyCraftingSearchSize.name": "Nearby Crafting Search Size",
