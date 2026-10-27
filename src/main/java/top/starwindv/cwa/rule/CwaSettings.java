@@ -123,8 +123,18 @@ public final class CwaSettings {
 				return newValue;
 			}
 
-			int max = Math.max(1, server.getPlayerList().getSimulationDistance() * 16);
-			return newValue <= max ? newValue : null;
+			if (server.getPlayerList() == null) {
+				return newValue;
+			}
+
+			int simulationDistance = server.getPlayerList().getSimulationDistance();
+			if (simulationDistance <= 0) {
+				// The integrated server restores rule defaults before the player
+				// list has received the world's simulation distance.
+				return newValue;
+			}
+
+			return newValue <= simulationDistance * 16 ? newValue : null;
 		}
 
 		@Override
