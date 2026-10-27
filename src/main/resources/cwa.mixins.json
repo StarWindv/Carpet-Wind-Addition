@@ -32,7 +32,9 @@
 		"WaterproofBlocksMixin"
 	],
 	"client": [
-		"ClientSuggestionProviderMixin"
+		"ClientSuggestionProviderMixin",
+		"RecipeBookComponentInvoker",
+		"RecipeBookComponentMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

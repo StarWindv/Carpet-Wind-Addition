@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -18,9 +19,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.BarrelBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChestBlock;
@@ -111,6 +114,68 @@ public final class NearbyCraftingManager {
 		CURRENT.remove();
 		if (context != null) {
 			context.onMenuRemoved();
+		}
+	}
+
+	public static void sendNearbyContents(CraftingMenu menu, Player player) {
+		if (!(player instanceof ServerPlayer serverPlayer) || !(menu instanceof NearbyCraftingMenu accessMenu)) {
+			return;
+		}
+
+		if (!CwaSettings.NearbyCrafting) {
+			send(serverPlayer, List.of());
+			return;
+		}
+
+		List<ItemStack> stacks = accessMenu.cwa$getAccess().evaluate((level, pos) -> {
+			if (!(level instanceof ServerLevel serverLevel)) {
+				return List.<ItemStack>of();
+			}
+
+			List<ContainerEntry> containers = findContainers(
+					serverLevel,
+					pos.immutable(),
+					searchSize(serverLevel.getServer())
+			);
+			return collectStacks(containers);
+		}, List.of());
+		send(serverPlayer, stacks);
+	}
+
+	public static void clearClient(Player player) {
+		if (player instanceof ServerPlayer serverPlayer) {
+			send(serverPlayer, List.of());
+		}
+	}
+
+	private static List<ItemStack> collectStacks(List<ContainerEntry> containers) {
+		List<ItemStack> stacks = new ArrayList<>();
+		for (ContainerEntry entry : containers) {
+			Container container = entry.container();
+			for (int slot = 0; slot < container.getContainerSize(); slot++) {
+				ItemStack stack = container.getItem(slot);
+				if (!stack.isEmpty()) {
+					stacks.add(stack.copy());
+					if (stacks.size() >= NearbyCraftingPayload.MAX_STACKS) {
+						return List.copyOf(stacks);
+					}
+				}
+			}
+		}
+		return List.copyOf(stacks);
+	}
+
+	private static void send(ServerPlayer player, List<ItemStack> stacks) {
+		try {
+			if (ServerPlayNetworking.canSend(player, NearbyCraftingPayload.TYPE)) {
+				ServerPlayNetworking.send(player, new NearbyCraftingPayload(stacks));
+			}
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.debug(
+					"Failed to send nearby crafting contents to {}",
+					player.getScoreboardName(),
+					throwable
+			);
 		}
 	}
 

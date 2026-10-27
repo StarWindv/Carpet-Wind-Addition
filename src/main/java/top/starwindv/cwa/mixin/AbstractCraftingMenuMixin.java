@@ -37,6 +37,9 @@ public abstract class AbstractCraftingMenuMixin {
 			Inventory inventory,
 			CallbackInfoReturnable<RecipeBookMenu.PostPlaceAction> cir
 	) {
+		if ((Object) this instanceof CraftingMenu menu) {
+			NearbyCraftingManager.sendNearbyContents(menu, inventory.player);
+		}
 		NearbyCraftingManager.end();
 	}
 }
