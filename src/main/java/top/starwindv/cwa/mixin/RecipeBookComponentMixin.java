@@ -2,6 +2,8 @@ package top.starwindv.cwa.mixin;
 
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.world.entity.player.StackedItemContents;
+import net.minecraft.world.inventory.CraftingMenu;
+import net.minecraft.world.inventory.RecipeBookMenu;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,6 +18,10 @@ public abstract class RecipeBookComponentMixin {
 	@Final
 	private StackedItemContents stackedContents;
 
+	@Shadow
+	@Final
+	protected RecipeBookMenu menu;
+
 	@Inject(
 			method = "initVisuals",
 			at = @At(
@@ -25,7 +31,9 @@ public abstract class RecipeBookComponentMixin {
 			)
 	)
 	private void cwa$addNearbyOnInit(CallbackInfo ci) {
-		NearbyCraftingClient.account(this.stackedContents::accountSimpleStack);
+		if (this.menu instanceof CraftingMenu) {
+			NearbyCraftingClient.account(this.stackedContents::accountSimpleStack);
+		}
 	}
 
 	@Inject(
@@ -37,7 +45,9 @@ public abstract class RecipeBookComponentMixin {
 			)
 	)
 	private void cwa$addNearbyOnUpdate(CallbackInfo ci) {
-		NearbyCraftingClient.account(this.stackedContents::accountSimpleStack);
+		if (this.menu instanceof CraftingMenu) {
+			NearbyCraftingClient.account(this.stackedContents::accountSimpleStack);
+		}
 	}
 
 	@Inject(method = "tick", at = @At("HEAD"))
