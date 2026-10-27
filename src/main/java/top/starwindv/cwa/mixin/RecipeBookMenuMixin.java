@@ -31,6 +31,9 @@ public abstract class RecipeBookMenuMixin {
 			ServerPlayer player,
 			CallbackInfo ci
 	) {
+		if ((Object) this instanceof CraftingMenu menu) {
+			NearbyCraftingManager.sendNearbyContents(menu, player);
+		}
 		NearbyCraftingManager.end();
 	}
 }
