@@ -111,6 +111,40 @@ public final class PasterCommandRules {
 		};
 	}
 
+	/**
+	 * Stricter version of {@link #isValid} used when a command arrives through
+	 * the player's chat packet instead of the CWA paster channel. In that path
+	 * the player could type an arbitrary command during a paste, so even air
+	 * setblock commands must stay inside the paste bounds.
+	 */
+	public static boolean isWithinBounds(String command, List<PasterBounds> bounds) {
+		String normalized = normalize(command);
+		if (normalized.isEmpty()) {
+			return false;
+		}
+
+		String[] tokens = normalized.split("\\s+");
+		if (tokens.length == 0) {
+			return false;
+		}
+
+		if (tokens[0].equals("gamerule")) {
+			return COMMAND_FEEDBACK_GAMERULE.matcher(normalized).matches();
+		}
+		if (bounds == null || bounds.isEmpty()) {
+			return false;
+		}
+
+		return switch (tokens[0]) {
+			case "setblock" -> tokens.length >= 5 && blockPositions(tokens, bounds, 1);
+			case "fill" -> tokens.length >= 8 && blockPositions(tokens, bounds, 1, 4);
+			case "summon" -> tokens.length >= 5 && floatingPositions(tokens, bounds, 2);
+			case "clone" -> tokens.length >= 10 && blockPositions(tokens, bounds, 7);
+			case "data" -> validDataCommand(tokens, bounds);
+			default -> false;
+		};
+	}
+
 	private static boolean validDataCommand(String[] tokens, List<PasterBounds> bounds) {
 		if (tokens.length < 4 || !tokens[1].equals("modify")) {
 			return false;
