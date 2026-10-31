@@ -1,6 +1,7 @@
 package top.starwindv.cwa.paster;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
@@ -544,6 +545,29 @@ public final class LitematicaBridge {
 		);
 	}
 
+	/**
+	 * Litematica 0.29+ can append a {@code strict} mode to every generated
+	 * setblock/fill/clone command. Disable that per task instead of changing the
+	 * user's Litematica config, and keep the commands compatible with servers
+	 * that do not know the mode.
+	 */
+	private static void disableStrictCommands(Object task) {
+		Class<?> type = task.getClass();
+		while (type != null) {
+			try {
+				Field field = type.getDeclaredField("useStrict");
+				field.setAccessible(true);
+				field.set(task, "");
+				return;
+			} catch (NoSuchFieldException ignored) {
+				type = type.getSuperclass();
+			} catch (Throwable throwable) {
+				CarpetWindAddition.LOGGER.debug("Failed to disable Litematica's strict paste mode", throwable);
+				return;
+			}
+		}
+	}
+
 	public static boolean startCommandPaste(UUID placementId, String fingerprint, Consumer<Boolean> completion) {
 		if (!isAvailable()) {
 			return false;
@@ -579,6 +603,7 @@ public final class LitematicaBridge {
 					Object task = commandPasteTaskClass
 							.getConstructor(Collection.class, layerRangeClass, boolean.class)
 							.newInstance(List.of(selected), layerRange, true);
+					disableStrictCommands(task);
 					PasterClient.setActiveCommandTask(task);
 					task.getClass()
 							.getMethod("setCompletionListener", completionListenerClass)

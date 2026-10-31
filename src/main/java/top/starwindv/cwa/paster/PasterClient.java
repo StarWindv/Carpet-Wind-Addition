@@ -96,12 +96,13 @@ public final class PasterClient {
 	 */
 	public static boolean interceptCommand(Object task, String command) {
 		UUID placementId = activeCommandPaste;
+		String routed = PasterCommandRules.stripStrict(command);
 		if (placementId == null
 				|| task != activeCommandTask
-				|| !PasterCommandRules.canRoute(command)) {
+				|| !PasterCommandRules.canRoute(routed)) {
 			return false;
 		}
-		return PasterNetworking.sendCommand(placementId, command);
+		return PasterNetworking.sendCommand(placementId, routed);
 	}
 
 	public static void setActiveCommandTask(Object task) {
