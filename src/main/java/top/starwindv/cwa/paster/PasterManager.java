@@ -9,7 +9,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import com.mojang.brigadier.ParseResults;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -684,7 +687,7 @@ public final class PasterManager {
 			return;
 		}
 
-		String command = PasterCommandRules.normalize(payload.command());
+		String command = PasterCommandRules.stripStrict(payload.command());
 		if (!PasterCommandRules.isValid(command, session.bounds)) {
 			session.rejectedCommands++;
 			CarpetWindAddition.LOGGER.warn(
@@ -699,16 +702,37 @@ public final class PasterManager {
 		if (server == null) {
 			return;
 		}
-		if (command.equalsIgnoreCase("gamerule send_command_feedback false")) {
-			session.feedbackDisabled = true;
-		} else if (command.equalsIgnoreCase("gamerule send_command_feedback true")) {
-			session.feedbackDisabled = false;
-		}
-
 		try {
 			CommandSourceStack source = player.createCommandSourceStack()
 					.withPermission(PermissionSet.ALL_PERMISSIONS);
-			server.getCommands().performPrefixedCommand(source, command);
+			// Litematica probes the feedback gamerule through chat, so only
+			// silence the bulk block commands.
+			if (!PasterCommandRules.root(command).equals("gamerule")) {
+				source = source.withSuppressedOutput();
+			}
+
+			ParseResults<CommandSourceStack> parsed = server.getCommands()
+					.getDispatcher()
+					.parse(command, source);
+			CommandSyntaxException parseError = Commands.getParseException(parsed);
+			if (parseError != null) {
+				session.rejectedCommands++;
+				CarpetWindAddition.LOGGER.warn(
+						"Rejected remote paster command from {} (invalid syntax): {} [{}]",
+						player.getScoreboardName(),
+						command.length() > 120 ? command.substring(0, 120) + "..." : command,
+						parseError.getMessage()
+				);
+				return;
+			}
+
+			if (command.equalsIgnoreCase("gamerule send_command_feedback false")) {
+				session.feedbackDisabled = true;
+			} else if (command.equalsIgnoreCase("gamerule send_command_feedback true")) {
+				session.feedbackDisabled = false;
+			}
+
+			server.getCommands().performCommand(parsed, command);
 		} catch (Throwable throwable) {
 			CarpetWindAddition.LOGGER.warn("Failed to execute a remote paster command", throwable);
 		}

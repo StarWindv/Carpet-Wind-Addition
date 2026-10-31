@@ -52,6 +52,32 @@ public final class PasterCommandRules {
 		return normalized.substring(0, end);
 	}
 
+	/**
+	 * Litematica 0.29+ appends the vanilla {@code strict} mode to command based
+	 * paste commands when {@code commandUseStrict} is enabled. The mode is only
+	 * available on newer game versions and can also be missing when the server
+	 * is running a different version or a command replacement mod. CWA already
+	 * suppresses updates around the paste area, so drop the optional mode before
+	 * the command is routed or executed.
+	 */
+	public static String stripStrict(String command) {
+		String normalized = normalize(command);
+		int start = normalized.length();
+		while (start > 0 && !Character.isWhitespace(normalized.charAt(start - 1))) {
+			start--;
+		}
+		if (start == 0 || !normalized.substring(start).equals("strict")) {
+			return normalized;
+		}
+
+		String root = root(normalized);
+		if (!root.equals("setblock") && !root.equals("fill") && !root.equals("clone")) {
+			return normalized;
+		}
+
+		return normalized.substring(0, start).trim();
+	}
+
 	public static boolean canRoute(String command) {
 		return COMMAND_ROOTS.contains(root(command));
 	}
