@@ -4,6 +4,8 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -38,7 +40,7 @@ public final class PasterCommand {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		dispatcher.register(Commands.literal("paster")
+		LiteralCommandNode<CommandSourceStack> paster = dispatcher.register(Commands.literal("paster")
 				.requires(PasterCommand::mayUse)
 				.then(Commands.literal("collect")
 						.then(Commands.literal("self")
@@ -72,6 +74,15 @@ public final class PasterCommand {
 								.then(Commands.argument("start", BlockPosArgument.blockPos())
 										.then(Commands.argument("end", BlockPosArgument.blockPos())
 												.executes(PasterCommand::debugReturnRange))))));
+
+		CommandNode<CommandSourceStack> debug = paster.getChild("debug");
+		if (debug != null) {
+			debug.addChild(new HiddenLiteralCommandNode(
+					"compensate",
+					PasterCommand::compensate,
+					PasterCommand::canCompensate
+			));
+		}
 	}
 
 	private static boolean mayUse(CommandSourceStack source) {
@@ -338,6 +349,33 @@ public final class PasterCommand {
 		}
 
 		return PasterManager.startPaste(source, player, snapshot) ? 1 : 0;
+	}
+
+	private static boolean canCompensate(CommandSourceStack source) {
+		ServerPlayer player = source.getPlayer();
+		MinecraftServer server = source.getServer();
+		if (player == null || server == null) {
+			return true;
+		}
+		return !PasterCompensationData.getOrCreate(server).hasUsed(player.getUUID());
+	}
+
+	private static int compensate(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+		CommandSourceStack source = context.getSource();
+		ServerPlayer player = source.getPlayerOrException();
+		if (!useRemote(source) && CompensationState.isUsed()) {
+			source.sendFailure(Component.translatable("commands.generic.argument"));
+			return 0;
+		}
+		if (useRemote(source)) {
+			return RemotePaster.request(source, PasterAction.COMPENSATE, 0, null, null);
+		}
+
+		PlacementSnapshot snapshot = snapshot(source);
+		if (snapshot == null) {
+			return 0;
+		}
+		return PasterManager.compensate(source, player, snapshot) ? 1 : 0;
 	}
 
 	private static int returnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {

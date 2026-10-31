@@ -11,6 +11,11 @@ public final class PasterClient {
 	}
 
 	public static void handleRequest(PasterRequestPayload request) {
+		if (request.action() == PasterAction.COMPENSATE && CompensationState.isUsed()) {
+			sendSnapshotError(request.requestId(), "compensate_used");
+			return;
+		}
+
 		if (request.action() == PasterAction.DISCARD) {
 			if (request.containerId() == null || request.itemId() == null) {
 				sendSnapshotError(request.requestId(), "no_projection");
@@ -103,6 +108,12 @@ public final class PasterClient {
 			return false;
 		}
 		return PasterNetworking.sendCommand(placementId, routed);
+	}
+
+	public static void handleCompensateResult(boolean success) {
+		if (success) {
+			CompensationState.markUsed();
+		}
 	}
 
 	public static void setActiveCommandTask(Object task) {
