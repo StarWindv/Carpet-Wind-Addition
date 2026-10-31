@@ -98,6 +98,7 @@ public final class RemotePaster {
 			player.sendSystemMessage(switch (payload.error()) {
 				case "no_projection" -> CwaMessages.translatable("cwa.paster.no_projection");
 				case "fingerprint_unavailable" -> CwaMessages.translatable("cwa.paster.fingerprint_unavailable");
+				case "compensate_used" -> CwaMessages.translatable("commands.generic.argument");
 				default -> Component.literal(payload.error());
 			});
 			return;
@@ -153,7 +154,8 @@ public final class RemotePaster {
 			data.set(player.getUUID(), payload.placementId(), stored);
 		} else if (pending.action == PasterAction.COLLECT_SELF
 				|| pending.action == PasterAction.COLLECT_RANGE
-				|| pending.action == PasterAction.DISCARD) {
+				|| pending.action == PasterAction.DISCARD
+				|| pending.action == PasterAction.COMPENSATE) {
 			data.set(player.getUUID(), payload.placementId(), incoming);
 			stored = incoming;
 		} else if (stored == null) {
@@ -199,6 +201,7 @@ public final class RemotePaster {
 			case PASTE -> {
 				PasterManager.startPaste(source, player, snapshot);
 			}
+			case COMPENSATE -> PasterManager.compensate(source, player, snapshot);
 			case RETURN_SELF -> {
 				if (PasterManager.isPasteRunning(player.getUUID())) {
 					source.sendFailure(CwaMessages.translatable("cwa.paster.return.busy"));

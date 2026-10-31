@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import top.starwindv.cwa.CarpetWindAddition;
 import top.starwindv.cwa.allow.AllowManager;
+import top.starwindv.cwa.paster.HiddenLiteralCommandNode;
 
 @Mixin(Commands.class)
 public abstract class CommandsMixin {
@@ -35,6 +36,9 @@ public abstract class CommandsMixin {
 			Map converted, boolean allowedRoot) {
 		for (Object childObject : source.getChildren()) {
 			CommandNode child = (CommandNode) childObject;
+			if (child instanceof HiddenLiteralCommandNode) {
+				continue;
+			}
 			boolean allowed = allowedRoot
 					|| (source instanceof RootCommandNode && AllowManager.isAllowed(commandFilter, child.getName()));
 
