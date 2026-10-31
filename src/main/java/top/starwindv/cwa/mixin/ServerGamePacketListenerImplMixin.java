@@ -7,6 +7,8 @@ import com.mojang.brigadier.suggestion.Suggestions;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
+import net.minecraft.network.protocol.game.ServerboundChatCommandPacket;
+import net.minecraft.network.protocol.game.ServerboundChatCommandSignedPacket;
 import net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -18,9 +20,28 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import top.starwindv.cwa.allow.AllowManager;
+import top.starwindv.cwa.paster.PasterManager;
 
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class ServerGamePacketListenerImplMixin {
+	@Inject(method = "handleChatCommand", at = @At("HEAD"), cancellable = true)
+	private void cwa$handlePasterChatCommand(ServerboundChatCommandPacket packet, CallbackInfo ci) {
+		ServerGamePacketListenerImpl listener = (ServerGamePacketListenerImpl) (Object) this;
+		ServerPlayer player = listener.player;
+		if (player != null && PasterManager.tryHandleChatCommand(player, packet.command())) {
+			ci.cancel();
+		}
+	}
+
+	@Inject(method = "handleSignedChatCommand", at = @At("HEAD"), cancellable = true)
+	private void cwa$handleSignedPasterChatCommand(ServerboundChatCommandSignedPacket packet, CallbackInfo ci) {
+		ServerGamePacketListenerImpl listener = (ServerGamePacketListenerImpl) (Object) this;
+		ServerPlayer player = listener.player;
+		if (player != null && PasterManager.tryHandleChatCommand(player, packet.command())) {
+			ci.cancel();
+		}
+	}
+
 	@Inject(method = "parseCommand", at = @At("HEAD"), cancellable = true)
 	private void cwa$parseAllowedCommand(String command, CallbackInfoReturnable<ParseResults<CommandSourceStack>> cir) {
 		ServerGamePacketListenerImpl listener = (ServerGamePacketListenerImpl) (Object) this;

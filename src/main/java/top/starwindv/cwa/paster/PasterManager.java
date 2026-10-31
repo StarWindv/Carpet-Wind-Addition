@@ -678,6 +678,27 @@ public final class PasterManager {
 		finishPaste(player.level().getServer(), session, success);
 	}
 
+	/**
+	 * Fallback for clients whose Litematica command task is not intercepted by
+	 * CWA. Commands that belong to the player's active remote paste are handled
+	 * by the same validated path instead of the player's vanilla command
+	 * permissions.
+	 */
+	public static boolean tryHandleChatCommand(ServerPlayer player, String command) {
+		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
+		if (session == null || !session.remote) {
+			return false;
+		}
+
+		String normalized = PasterCommandRules.stripStrict(command);
+		if (!PasterCommandRules.isWithinBounds(normalized, session.bounds)) {
+			return false;
+		}
+
+		handleRemoteCommand(player, new PasterCommandPayload(session.placementId, normalized));
+		return true;
+	}
+
 	public static void handleRemoteCommand(ServerPlayer player, PasterCommandPayload payload) {
 		ActivePaste session = ACTIVE_PASTES.get(player.getUUID());
 		if (session == null
