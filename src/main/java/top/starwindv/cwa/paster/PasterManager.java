@@ -678,6 +678,53 @@ public final class PasterManager {
 		finishPaste(player.level().getServer(), session, success);
 	}
 
+	public static boolean compensate(CommandSourceStack source, ServerPlayer player, PlacementSnapshot snapshot) {
+		MinecraftServer server = source.getServer();
+		if (server == null) {
+			return false;
+		}
+		if (isPasteRunning(player.getUUID())) {
+			source.sendFailure(Component.translatable("cwa.paster.return.busy"));
+			PasterNetworking.sendCompensateResult(player, false);
+			return false;
+		}
+
+		PasterCompensationData compensations = PasterCompensationData.getOrCreate(server);
+		if (compensations.hasUsed(player.getUUID())) {
+			source.sendFailure(Component.translatable("commands.generic.argument"));
+			PasterNetworking.sendCompensateResult(player, false);
+			return false;
+		}
+
+		List<ItemStack> materials = new ArrayList<>();
+		for (PasterMaterial material : snapshot.requiredMaterials()) {
+			if (material.count() > 0) {
+				PasterMaterials.add(materials, material.sample().copyWithCount(material.count()));
+			}
+		}
+		if (materials.isEmpty()) {
+			source.sendFailure(Component.translatable("commands.generic.argument"));
+			PasterNetworking.sendCompensateResult(player, false);
+			return false;
+		}
+
+		PasterData data = PasterData.getOrCreate(server);
+		data.set(player.getUUID(), snapshot.id(), materials, snapshot.fingerprint());
+		PasterSnapshotData snapshots = PasterSnapshotData.getOrCreate(server);
+		snapshots.set(player.getUUID(), snapshot.id(), new PasterSnapshotData.StoredSnapshot(
+				snapshot.name(),
+				snapshot.dimension(),
+				snapshot.requiredMaterials(),
+				snapshot.bounds(),
+				snapshot.discardRules(),
+				snapshot.fingerprint()
+		));
+		compensations.markUsed(player.getUUID());
+		refreshProtectedPlacements(server);
+		PasterNetworking.sendCompensateResult(player, true);
+		return true;
+	}
+
 	/**
 	 * Fallback for clients whose Litematica command task is not intercepted by
 	 * CWA. Commands that belong to the player's active remote paste are handled

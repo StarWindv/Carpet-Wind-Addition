@@ -14,6 +14,10 @@ public final class PasterNetworking {
 	public static void registerTypes() {
 		PayloadTypeRegistry.clientboundPlay().register(PasterRequestPayload.TYPE, PasterRequestPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(PasterStartPastePayload.TYPE, PasterStartPastePayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(
+				PasterCompensateResultPayload.TYPE,
+				PasterCompensateResultPayload.CODEC
+		);
 		PayloadTypeRegistry.serverboundPlay().register(PasterSnapshotPayload.TYPE, PasterSnapshotPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(PasterPasteResultPayload.TYPE, PasterPasteResultPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(PasterCommandPayload.TYPE, PasterCommandPayload.CODEC);
@@ -70,6 +74,16 @@ public final class PasterNetworking {
 	static void sendSnapshot(PasterSnapshotPayload payload) {
 		if (ClientPlayNetworking.canSend(PasterSnapshotPayload.TYPE)) {
 			ClientPlayNetworking.send(payload);
+		}
+	}
+
+	static void sendCompensateResult(ServerPlayer player, boolean success) {
+		try {
+			if (ServerPlayNetworking.canSend(player, PasterCompensateResultPayload.TYPE)) {
+				ServerPlayNetworking.send(player, new PasterCompensateResultPayload(success));
+			}
+		} catch (Throwable throwable) {
+			CarpetWindAddition.LOGGER.debug("Failed to send a paster compensation result", throwable);
 		}
 	}
 
