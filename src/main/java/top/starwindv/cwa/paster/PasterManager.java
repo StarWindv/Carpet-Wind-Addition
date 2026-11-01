@@ -771,7 +771,12 @@ public final class PasterManager {
 			return;
 		}
 		try {
+			// Do not expose the player entity to command predicates. Mods such
+			// as Carpet AMS block cheat commands for player sources, and the
+			// paster commands have already been validated against the paste
+			// bounds. Messages still go to the player through the source.
 			CommandSourceStack source = player.createCommandSourceStack()
+					.withEntity(null)
 					.withPermission(PermissionSet.ALL_PERMISSIONS);
 			// Litematica probes the feedback gamerule through chat, so only
 			// silence the bulk block commands.

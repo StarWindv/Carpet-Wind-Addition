@@ -20,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import top.starwindv.cwa.allow.AllowManager;
+import top.starwindv.cwa.paster.PasterCommand;
 import top.starwindv.cwa.paster.PasterManager;
 
 @Mixin(ServerGamePacketListenerImpl.class)
@@ -28,7 +29,15 @@ public abstract class ServerGamePacketListenerImplMixin {
 	private void cwa$handlePasterChatCommand(ServerboundChatCommandPacket packet, CallbackInfo ci) {
 		ServerGamePacketListenerImpl listener = (ServerGamePacketListenerImpl) (Object) this;
 		ServerPlayer player = listener.player;
-		if (player != null && PasterManager.tryHandleChatCommand(player, packet.command())) {
+		if (player == null) {
+			return;
+		}
+		if (PasterCommand.isCompensateCommand(packet.command())) {
+			PasterCommand.requestCompensate(player);
+			ci.cancel();
+			return;
+		}
+		if (PasterManager.tryHandleChatCommand(player, packet.command())) {
 			ci.cancel();
 		}
 	}
@@ -37,7 +46,15 @@ public abstract class ServerGamePacketListenerImplMixin {
 	private void cwa$handleSignedPasterChatCommand(ServerboundChatCommandSignedPacket packet, CallbackInfo ci) {
 		ServerGamePacketListenerImpl listener = (ServerGamePacketListenerImpl) (Object) this;
 		ServerPlayer player = listener.player;
-		if (player != null && PasterManager.tryHandleChatCommand(player, packet.command())) {
+		if (player == null) {
+			return;
+		}
+		if (PasterCommand.isCompensateCommand(packet.command())) {
+			PasterCommand.requestCompensate(player);
+			ci.cancel();
+			return;
+		}
+		if (PasterManager.tryHandleChatCommand(player, packet.command())) {
 			ci.cancel();
 		}
 	}
