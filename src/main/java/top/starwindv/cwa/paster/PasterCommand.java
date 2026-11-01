@@ -4,8 +4,6 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.tree.CommandNode;
-import com.mojang.brigadier.tree.LiteralCommandNode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,7 +38,7 @@ public final class PasterCommand {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		LiteralCommandNode<CommandSourceStack> paster = dispatcher.register(Commands.literal("paster")
+		dispatcher.register(Commands.literal("paster")
 				.requires(PasterCommand::mayUse)
 				.then(Commands.literal("collect")
 						.then(Commands.literal("self")
@@ -74,15 +72,6 @@ public final class PasterCommand {
 								.then(Commands.argument("start", BlockPosArgument.blockPos())
 										.then(Commands.argument("end", BlockPosArgument.blockPos())
 												.executes(PasterCommand::debugReturnRange))))));
-
-		CommandNode<CommandSourceStack> debug = paster.getChild("debug");
-		if (debug != null) {
-			debug.addChild(new HiddenLiteralCommandNode(
-					"compensate",
-					PasterCommand::compensate,
-					PasterCommand::canCompensate
-			));
-		}
 	}
 
 	private static boolean mayUse(CommandSourceStack source) {
@@ -351,31 +340,42 @@ public final class PasterCommand {
 		return PasterManager.startPaste(source, player, snapshot) ? 1 : 0;
 	}
 
-	private static boolean canCompensate(CommandSourceStack source) {
-		ServerPlayer player = source.getPlayer();
-		MinecraftServer server = source.getServer();
-		if (player == null || server == null) {
-			return true;
+	public static boolean isCompensateCommand(String command) {
+		if (command == null) {
+			return false;
 		}
-		return !PasterCompensationData.getOrCreate(server).hasUsed(player.getUUID());
+		String normalized = command.trim();
+		while (normalized.startsWith("/")) {
+			normalized = normalized.substring(1).trim();
+		}
+		return normalized.equals("paster debug compensate");
 	}
 
-	private static int compensate(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-		CommandSourceStack source = context.getSource();
-		ServerPlayer player = source.getPlayerOrException();
+	public static void requestCompensate(ServerPlayer player) {
+		CommandSourceStack source = player.createCommandSourceStack();
+		if (!mayUse(source)) {
+			source.sendFailure(Component.translatable("commands.generic.argument"));
+			return;
+		}
+		MinecraftServer server = player.level().getServer();
+		if (server != null && PasterCompensationData.getOrCreate(server).hasUsed(player.getUUID())) {
+			source.sendFailure(Component.translatable("commands.generic.argument"));
+			return;
+		}
 		if (!useRemote(source) && CompensationState.isUsed()) {
 			source.sendFailure(Component.translatable("commands.generic.argument"));
-			return 0;
+			return;
 		}
 		if (useRemote(source)) {
-			return RemotePaster.request(source, PasterAction.COMPENSATE, 0, null, null);
+			RemotePaster.request(source, PasterAction.COMPENSATE, 0, null, null);
+			return;
 		}
 
 		PlacementSnapshot snapshot = snapshot(source);
 		if (snapshot == null) {
-			return 0;
+			return;
 		}
-		return PasterManager.compensate(source, player, snapshot) ? 1 : 0;
+		PasterManager.compensate(source, player, snapshot);
 	}
 
 	private static int returnSelf(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
